@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, GraduationCap, Shield } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export default function OnboardingPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null)
@@ -51,13 +52,19 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center space-x-2 mb-6">
-            <div className="w-8 h-8 bg-ccis-blue rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">C</span>
+            <div className="w-8 h-8 flex items-center justify-center">
+              <Image
+                src="/PUP_CCIS_logo.png"
+                alt="PUP CCIS Logo"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
             </div>
             <span className="text-xl font-bold text-ccis-blue">CCIS Lab System</span>
           </Link>
@@ -114,23 +121,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Help Text */}
-        <div className="mt-12 bg-white rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Need Help?</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-            <div>
-              <strong className="text-gray-900">Students:</strong> Use your student number to register and book labs for
-              projects and study sessions.
-            </div>
-            <div>
-              <strong className="text-gray-900">Faculty:</strong> Register with your faculty number to reserve labs for
-              classes and research.
-            </div>
-            <div>
-              <strong className="text-gray-900">Admins:</strong> Contact IT support for admin credentials to manage the
-              system.
-            </div>
-          </div>
-        </div>
+       
       </div>
     </div>
   )

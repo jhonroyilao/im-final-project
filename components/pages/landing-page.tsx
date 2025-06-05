@@ -102,7 +102,7 @@ export default function LandingPage() {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-yellow-100/70 backdrop-blur-[2px]"></div>
+          <div className="absolute inset-0 bg-blue-100/90 backdrop-blur-[10px]\"></div>
         </div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-4xl mx-auto text-center">
@@ -111,7 +111,7 @@ export default function LandingPage() {
               Lab Reservation & Inventory Management System
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-gray-600 leading-relaxed">
-              Streamline your laboratory bookings and equipment requests for rooms S501-S509
+              Streamline your laboratory bookings and equipment requests for rooms.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/onboarding">
