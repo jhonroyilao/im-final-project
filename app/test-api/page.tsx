@@ -12,7 +12,7 @@ export default function TestAPI() {
     async function fetchRooms() {
       try {
         const { data, error } = await supabase
-          .from('rooms')
+          .from('room')
           .select('*')
         
         if (error) {
@@ -50,10 +50,11 @@ export default function TestAPI() {
           ) : (
             <ul className="space-y-2">
               {rooms.map((room) => (
-                <li key={room.id} className="bg-white p-4 rounded shadow">
-                  <p className="font-medium">Room {room.room_number}</p>
-                  <p>Capacity: {room.capacity}</p>
-                  {room.description && <p>Description: {room.description}</p>}
+                <li key={room.roomid} className="bg-white p-4 rounded shadow">
+                  <p className="font-medium">Room {room.roomnumber}</p>
+                  <p>Capacity: {room.roomcapacity}</p>
+                  <p>Type: {room.roomtype}</p>
+                  <p>Status: {room.status}</p>
                 </li>
               ))}
             </ul>
