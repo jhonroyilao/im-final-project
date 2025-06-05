@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Image from "next/image"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -105,8 +106,14 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
                 <SheetContent side="left" className="w-[240px] sm:w-[300px]">
                   <div className="flex flex-col h-full">
                     <div className="flex items-center space-x-2 py-4">
-                      <div className="w-8 h-8 bg-ccis-blue rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">C</span>
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        <Image
+                          src="/PUP_CCIS_logo.png"
+                          alt="PUP CCIS Logo"
+                          width={32}
+                          height={32}
+                          className="object-contain"
+                        />
                       </div>
                       <span className="text-xl font-bold text-ccis-blue">CCIS Lab System</span>
                     </div>
@@ -152,8 +159,14 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
               </Sheet>
 
               <Link href={`/dashboard/${userRole}`} className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-ccis-blue rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">C</span>
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Image
+                    src="/PUP_CCIS_logo.png"
+                    alt="PUP CCIS Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
                 </div>
                 <span className="text-xl font-bold text-ccis-blue hidden md:inline-block">CCIS Lab System</span>
               </Link>
@@ -222,7 +235,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
       <footer className="bg-white border-t py-4">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-sm text-gray-500">&copy; 2024 CCIS Lab Management System. All rights reserved.</div>
+            <div className="text-sm text-gray-500">&copy; 2025 BSCS 2-4. All rights reserved.</div>
             <div className="mt-4 md:mt-0 text-sm text-gray-500">
               <Link href="#" className="hover:text-ccis-blue">
                 Help
