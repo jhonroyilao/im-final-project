@@ -62,21 +62,22 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
       name: "Admin User",
       role: "Administrator",
       id: "ADMIN001",
-      color: "bg-purple-600",
+      color: "bg-ccis-blue",
     },
   }[userRole]
+
 
   const navigationItems = {
     student: [
       { name: "Dashboard", href: "/dashboard/student", icon: Home },
       { name: "Calendar", href: "/dashboard/student?tab=calendar", icon: Calendar },
-      { name: "Reservations", href: "/dashboard/student?tab=reserve", icon: Clock },
+      { name: "Reservations", href: "/dashboard/student?tab=reservations", icon: Clock },  // Changed from 'reserve' to 'reservations'
       { name: "Find Room", href: "/dashboard/student?tab=find", icon: Search },
     ],
     faculty: [
       { name: "Dashboard", href: "/dashboard/faculty", icon: Home },
       { name: "Calendar", href: "/dashboard/faculty?tab=calendar", icon: Calendar },
-      { name: "Reservations", href: "/dashboard/faculty?tab=reserve", icon: Clock },
+      { name: "Reservations", href: "/dashboard/faculty?tab=reservations", icon: Clock },  // Changed from 'reserve' to 'reservations'
       { name: "Find Room", href: "/dashboard/faculty?tab=find", icon: Search },
     ],
     admin: [
@@ -89,9 +90,9 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
   }[userRole]
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-indigo-100 flex flex-col">
       {/* Top Navigation Bar */}
-      <header className="bg-white border-b sticky top-0 z-30">
+      <header className="bg-white border-b sticky top-0 z-30 backdrop-blur-xl outline outline-2 outline-gray-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Mobile Menu Button */}

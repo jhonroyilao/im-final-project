@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,9 +13,22 @@ import ReserveRoomModal from "@/components/reservation/reserve-room-modal"
 import FindRoomModal from "@/components/reservation/find-room-modal"
 
 export default function StudentDashboard() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("calendar")
   const [showReserveModal, setShowReserveModal] = useState(false)
   const [showFindModal, setShowFindModal] = useState(false)
+  // const roleColor = "primary"
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+
+  
 
   return (
     <DashboardLayout userRole="student">
@@ -26,23 +40,31 @@ export default function StudentDashboard() {
             <p className="text-gray-600">Manage your lab reservations and requests</p>
           </div>
 
-          <Tabs defaultValue="calendar" className="space-y-6" onValueChange={setActiveTab} value={activeTab}>
-            <div className="flex justify-between items-center">
-              <TabsList>
-                <TabsTrigger value="calendar" className="flex items-center gap-2">
+          <Tabs value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
+            <div className="flex justify-between items-center border-b-2 border-primary pb-2">
+              <TabsList className="bg-transparent">
+                <TabsTrigger 
+                  value="calendar" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
+                >
                   <Calendar className="w-4 h-4" />
                   <span className="hidden sm:inline">Calendar</span>
                 </TabsTrigger>
-                <TabsTrigger value="reservations" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="reservations" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
+                >
                   <Clock className="w-4 h-4" />
                   <span className="hidden sm:inline">My Reservations</span>
                 </TabsTrigger>
-                <TabsTrigger value="find" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="find" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
+                >
                   <Search className="w-4 h-4" />
                   <span className="hidden sm:inline">Find Room</span>
                 </TabsTrigger>
               </TabsList>
-
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -53,15 +75,21 @@ export default function StudentDashboard() {
                   <Search className="w-4 h-4 mr-2" />
                   Find Room
                 </Button>
-                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => setShowReserveModal(true)}>
+                <Button 
+                  size="sm" 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => setShowReserveModal(true)}
+                >
                   <Clock className="w-4 h-4 mr-2" />
                   Reserve Room
                 </Button>
               </div>
             </div>
 
+            
+
             <TabsContent value="calendar" className="mt-6">
-              <RoomCalendar onReserveRoom={() => setShowReserveModal(true)} onFindRoom={() => setShowFindModal(true)} />
+              <RoomCalendar />
             </TabsContent>
 
             <TabsContent value="reservations" className="mt-6">
@@ -113,7 +141,6 @@ export default function StudentDashboard() {
 
       {/* Modals */}
       <ReserveRoomModal open={showReserveModal} onOpenChange={setShowReserveModal} userRole="student" />
-
       <FindRoomModal open={showFindModal} onOpenChange={setShowFindModal} />
     </DashboardLayout>
   )

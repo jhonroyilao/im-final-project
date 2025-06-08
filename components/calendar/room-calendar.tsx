@@ -22,8 +22,7 @@ import {
 } from "date-fns"
 
 interface RoomCalendarProps {
-  onReserveRoom?: () => void
-  onFindRoom?: () => void
+  
 }
 
 const rooms = [
@@ -54,9 +53,9 @@ const timeSlots = [
   "19:00",
 ]
 
-export default function RoomCalendar({ onReserveRoom, onFindRoom }: RoomCalendarProps) {
+export default function RoomCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<"today" | "week" | "month">("week")
+  const [view, setView] = useState<"today" | "week" | "month">("today")
 
   const navigateDate = (direction: "prev" | "next") => {
     if (view === "today") {
@@ -216,31 +215,17 @@ export default function RoomCalendar({ onReserveRoom, onFindRoom }: RoomCalendar
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-          <div>
-            <CardTitle className="flex items-center space-x-2">
-              <CalendarIcon className="w-5 h-5" />
-              <span>Room Calendar</span>
-            </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">View and manage room reservations</p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <Button
-              onClick={onFindRoom}
-              variant="outline"
-              size="sm"
-              className="border-primary text-primary hover:bg-primary hover:text-white"
-            >
-              Find Room
-            </Button>
-            <Button onClick={onReserveRoom} size="sm" className="bg-primary hover:bg-primary/90">
-              Reserve Room
-            </Button>
-          </div>
+    <CardHeader>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+        <div>
+          <CardTitle className="flex items-center space-x-2">
+            <CalendarIcon className="w-5 h-5" />
+            <span>Room Calendar</span>
+          </CardTitle>
+          <p className="text-sm text-gray-600 mt-1">View and manage room reservations</p>
         </div>
-      </CardHeader>
+      </div>
+    </CardHeader>
 
       <CardContent>
         <div className="space-y-4">

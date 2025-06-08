@@ -15,7 +15,10 @@ export default function FacultyDashboard() {
   const [activeTab, setActiveTab] = useState("calendar")
   const [showReserveModal, setShowReserveModal] = useState(false)
   const [showFindModal, setShowFindModal] = useState(false)
+  // const roleColor = "green-600"
+  
 
+  
   return (
     <DashboardLayout userRole="faculty">
       <div className="flex">
@@ -26,23 +29,31 @@ export default function FacultyDashboard() {
             <p className="text-gray-600">Manage your lab reservations and class schedules</p>
           </div>
 
-          <Tabs defaultValue="calendar" className="space-y-6" onValueChange={setActiveTab} value={activeTab}>
-            <div className="flex justify-between items-center">
-              <TabsList>
-                <TabsTrigger value="calendar" className="flex items-center gap-2">
+          <Tabs value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
+            <div className="flex justify-between items-center border-b-2 border-green-600 pb-2">
+              <TabsList className="bg-transparent">
+                <TabsTrigger 
+                  value="calendar" 
+                  className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                >
                   <Calendar className="w-4 h-4" />
                   <span className="hidden sm:inline">Calendar</span>
                 </TabsTrigger>
-                <TabsTrigger value="reservations" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="reservations" 
+                  className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                >
                   <Clock className="w-4 h-4" />
                   <span className="hidden sm:inline">My Reservations</span>
                 </TabsTrigger>
-                <TabsTrigger value="find" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="find" 
+                  className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                >
                   <Search className="w-4 h-4" />
                   <span className="hidden sm:inline">Find Room</span>
                 </TabsTrigger>
               </TabsList>
-
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -53,7 +64,11 @@ export default function FacultyDashboard() {
                   <Search className="w-4 h-4 mr-2" />
                   Find Room
                 </Button>
-                <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => setShowReserveModal(true)}>
+                <Button 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => setShowReserveModal(true)}
+                >
                   <Clock className="w-4 h-4 mr-2" />
                   Reserve Room
                 </Button>
@@ -61,7 +76,7 @@ export default function FacultyDashboard() {
             </div>
 
             <TabsContent value="calendar" className="mt-6">
-              <RoomCalendar onReserveRoom={() => setShowReserveModal(true)} onFindRoom={() => setShowFindModal(true)} />
+              <RoomCalendar />
             </TabsContent>
 
             <TabsContent value="reservations" className="mt-6">
@@ -77,7 +92,7 @@ export default function FacultyDashboard() {
                     <p className="text-gray-500 mb-4">
                       Start by reserving a room for your classes or research activities.
                     </p>
-                    <Button onClick={() => setShowReserveModal(true)} className="bg-green-600 hover:bg-green-700">
+                    <Button onClick={() => setShowReserveModal(true)} className="bg-green-600 hover:bg-green-700 text-white">
                       Reserve a Room
                     </Button>
                   </div>
@@ -98,7 +113,7 @@ export default function FacultyDashboard() {
                     <p className="text-gray-500 mb-4">
                       Search for rooms based on date, time, capacity, and equipment needs.
                     </p>
-                    <Button onClick={() => setShowFindModal(true)} className="bg-green-600 hover:bg-green-700">
+                    <Button onClick={() => setShowFindModal(true)} className="bg-green-600 hover:bg-green-700 text-white">
                       <Search className="w-4 h-4 mr-2" />
                       Find Room
                     </Button>
