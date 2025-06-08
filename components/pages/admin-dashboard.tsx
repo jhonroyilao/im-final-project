@@ -4,13 +4,16 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Clock, Package, BarChart3 } from "lucide-react"
+import { Calendar, Clock, Package, BarChart3, Search } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import RoomCalendar from "@/components/calendar/room-calendar"
 import ReservationSidebar from "@/components/reservation/reservation-sidebar"
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
+  const [showFindModal, setShowFindModal] = useState(false)
+  const [showReserveModal, setShowReserveModal] = useState(false)
+  // const roleColor = "purple-600"
 
   // Dashboard overview with stats
   const DashboardOverview = () => (
@@ -160,35 +163,16 @@ export default function AdminDashboard() {
             <p className="text-gray-600">Manage reservations, requests, and inventory</p>
           </div>
 
-          <Tabs defaultValue="dashboard" className="space-y-6" onValueChange={setActiveTab} value={activeTab}>
-            <div className="flex justify-between items-center">
-              <TabsList>
-                <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Dashboard</span>
-                </TabsTrigger>
-                <TabsTrigger value="calendar" className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span className="hidden sm:inline">Calendar</span>
-                </TabsTrigger>
-                <TabsTrigger value="requests" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Requests</span>
-                </TabsTrigger>
-                <TabsTrigger value="inventory" className="flex items-center gap-2">
-                  <Package className="w-4 h-4" />
-                  <span className="hidden sm:inline">Inventory</span>
-                </TabsTrigger>
-              </TabsList>
-
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="hidden md:flex">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  View Schedule
+          <Tabs value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-white" onClick={() => setShowFindModal(true)}>
+                  <Search className="w-4 h-4 mr-2" />
+                  Find Room
                 </Button>
-                <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                  <Package className="w-4 h-4 mr-2" />
-                  Add Inventory
+                <Button size="sm" className="bg-primary hover:bg-primary/90 text-white" onClick={() => setShowReserveModal(true)}>
+                  <Clock className="w-4 h-4 mr-2" />
+                  Reserve Room
                 </Button>
               </div>
             </div>
