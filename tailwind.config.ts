@@ -30,7 +30,7 @@ const config = {
           foreground: "#FFFFFF",
         },
         secondary: {
-          DEFAULT: "#FFDD00", // CCIS Yellow
+          DEFAULT: "#FFD700", // CCIS Yellow
           foreground: "#000000",
         },
         destructive: {

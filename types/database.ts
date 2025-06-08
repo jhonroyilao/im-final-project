@@ -1,8 +1,11 @@
 export interface User {
-  id: string
+  userid: number
+  name: string
   email: string
+  contactnumber: string
+  password: string
   role: "student" | "faculty" | "admin"
-  created_at: string
+  department: string
 }
 
 export interface Student {
@@ -32,24 +35,65 @@ export interface Room {
 }
 
 export interface InventoryItem {
-  id: string
-  name: string
-  description?: string
-  total_quantity: number
-  available_quantity: number
-  category?: string
+  itemid: number
+  roomid: number
+  itemname: string
+  quantity: number
+  condition: string
+}
+
+export interface InventoryLog {
+  logid: number
+  itemid: number
+  changedate: string
+  statusupdate: string
+  remarks: string
 }
 
 export interface Reservation {
-  id: string
-  user_id: string
-  room_id: string
-  reservation_date: string
+  reservationid: number
+  userid: number
+  roomid: number
+  reservationdate: string
+  starttime: string
+  endtime: string
+  status: string
+  prioritylevel: string
+}
+
+// Additional interfaces for recommended Supabase additions
+export interface ScheduledClass {
+  id: number
+  roomid: number
+  class_name: string
+  instructor_name: string
+  day_of_week: number
   time_start: string
   time_end: string
-  number_of_students: number
-  reason: string
-  status: "pending" | "approved" | "rejected" | "cancelled"
-  file_url?: string
+  semester: string
+  academic_year: string
+}
+
+export interface Notification {
+  id: number
+  userid: number
+  title: string
+  message: string
+  type: string
+  is_read: boolean
   created_at: string
+}
+
+export interface RoomEquipment {
+  id: number
+  roomid: number
+  itemid: number
+  quantity: number
+}
+
+export interface ReservationEquipment {
+  id: number
+  reservationid: number
+  itemid: number
+  quantity: number
 } 
