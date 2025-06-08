@@ -42,23 +42,24 @@ export default function LandingPage() {
   const teamMembers = [
     {
       name: "Jhon Roy Ilao",
-      role: "Frontend Developer",
+      role: "Frontend & Backend Developer",
       image: "/snoopy.jpeg",
-      description: "Leading the digital transformation of laboratory management.",
+      description: "Bridging user experience and server-side logic for seamless lab operations.",
     },
     {
       name: "John Eric Samillano",
-      role: "Backend Developer",
+      role: "Backend & Database Developer",
       image: "/snoopy.jpeg",
-      description: "Ensuring optimal utilization of laboratory resources.",
+      description: "Managing server logic and structuring efficient data storage systems.",
     },
     {
       name: "Luis Miguel Delacruz",
-      role: "Backend Developer",
+      role: "Backend & Database Developer",
       image: "/snoopy.jpeg",
-      description: "Maintaining and developing the technical infrastructure.",
+      description: "Building robust backend systems and maintaining reliable database performance.",
     },
-  ]
+  ];
+  
 
   return (
     <div className="min-h-screen bg-white">
@@ -115,7 +116,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/onboarding">
-                <Button size="lg" className="bg-secondary text-black hover:bg-secondary/90 text-lg px-8 py-4">
+                <Button size="lg" className="bg-secondary text-black outline outline-1 outline-primary hover:bg-secondary/90 text-lg px-8 py-4 border-1 border-black">
                   Reserve a Room
                 </Button>
               </Link>
@@ -146,10 +147,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white">
-                <CardHeader>
+              <Card key={index} className="border-primary shadow-lg hover:shadow-xl transition-all duration-300 bg-white">                <CardHeader>
                   <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-white" />
+                    <feature.icon className="w-6 h-6 text-secondary" />
                   </div>
                   <CardTitle className="text-xl text-gray-900">{feature.title}</CardTitle>
                 </CardHeader>
@@ -174,7 +174,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {teamMembers.map((member, index) => (
-              <Card key={index} className="text-center border-0 shadow-lg bg-white">
+              <Card key={index} className="text-center border-primary shadow-lg bg-white">
                 <CardHeader>
                   <div className="mx-auto mb-4">
                     <Image
@@ -205,7 +205,7 @@ export default function LandingPage() {
             Join the CCIS community and start managing your laboratory reservations efficiently today.
           </p>
           <Link href="/onboarding">
-            <Button size="lg" className="bg-secondary text-black hover:bg-secondary/90 text-lg px-8 py-4">
+            <Button size="lg" className="bg-secondary text-black hover:bg-secondary/90 text-lg px-8 py-4 ">
               Start Your Journey
             </Button>
           </Link>
@@ -218,8 +218,16 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">C</span>
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
+                  <Image
+                  src="/PUP_CCIS_logo.png"
+                  alt="PUP CCIS Logo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                  />
+                  </span>
                 </div>
                 <span className="text-xl font-bold">CCIS Lab System</span>
               </div>
