@@ -64,7 +64,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="border-b bg-white sticky top-0 z-50 backdrop-blur-sm">
+      <nav className="bg-white sticky top-0 z-50 outline outline-2 outline-gray-500">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
@@ -94,36 +94,39 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20 lg:py-32 relative">
-        <div className="absolute inset-0">
+      <section className="py-40 lg:py-40 relative">
+        <div className="absolute inset-0 outline outline-2 outline-gray-500">
           <Image
-            src="/pup_pic.jpg"
+            src="/pup_pic.png"
             alt="PUP Background"
             fill
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-blue-100/90 backdrop-blur-[10px]\"></div>
+          <div className="absolute inset-0"></div>
         </div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <Badge className="mb-6 bg-secondary text-black hover:bg-secondary/90 border-0">CCIS Department</Badge>
+            <p className="text-gray-900">COMP 010 Final Project</p>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900 leading-tight">
               Lab Reservation & Inventory Management System
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-600 leading-relaxed">
+            <p className="text-xl mb-8 text-gray-600 leading-relaxed">
               Streamline your laboratory bookings and equipment requests for rooms.
             </p>
+
+
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/onboarding">
-                <Button size="lg" className="bg-secondary text-black outline outline-1 outline-primary hover:bg-secondary/90 text-lg px-8 py-4 border-1 border-black">
+                <Button size="lg" className="bg-yellow-400 hover:bg-amber-400 text-black text-lg px-8 py-4 outline outline-1 outline-gray-500">
                   Reserve a Room
                 </Button>
               </Link>
               <Button
                 size="lg"
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary hover:text-white text-lg px-8 py-4"
+                className="border-primary text-primary hover:text-primary text-lg px-8 py-4"
               >
                 Learn More
               </Button>
@@ -133,7 +136,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gradient-to-br from-white-50 to-indigo-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -147,9 +150,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="border-primary shadow-lg hover:shadow-xl transition-all duration-300 bg-white">                <CardHeader>
-                  <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-secondary" />
+              <Card key={index} className="border-gray-500 border-2 hover:shadow-xl transition-all duration-300 bg-white">                <CardHeader>
+                  <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-gray-900" />
                   </div>
                   <CardTitle className="text-xl text-gray-900">{feature.title}</CardTitle>
                 </CardHeader>
@@ -174,7 +177,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {teamMembers.map((member, index) => (
-              <Card key={index} className="text-center border-primary shadow-lg bg-white">
+              <Card key={index} className="text-center border-gray-500 border-2 shadow-lg bg-white">
                 <CardHeader>
                   <div className="mx-auto mb-4">
                     <Image
@@ -205,7 +208,7 @@ export default function LandingPage() {
             Join the CCIS community and start managing your laboratory reservations efficiently today.
           </p>
           <Link href="/onboarding">
-            <Button size="lg" className="bg-secondary text-black hover:bg-secondary/90 text-lg px-8 py-4 ">
+            <Button size="lg" className="bg-yellow-400 hover:bg-amber-400 text-black text-lg px-8 py-4 outline outline-1 outline-gray-500">
               Start Your Journey
             </Button>
           </Link>

@@ -36,8 +36,8 @@ export default function StudentDashboard() {
         {/* Main Content */}
         <div className="flex-1 p-4 md:p-6">
           <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Hello, CCISkolar!</h1>
-            <p className="text-gray-600">Manage your lab reservations and requests</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Hello, CCISkolar!</h1>       {/* {userInfo.name} */}
+            <p className="text-gray-600">Book your lab reservations here.</p>
           </div>
 
           <Tabs value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
