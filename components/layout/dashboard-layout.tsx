@@ -47,13 +47,13 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
 
   const userInfo = {
     student: {
-      name: "John Smith",
+      name: "Jhon Roy Ilao",
       role: "Student",
-      id: "2024-12345",
+      id: "2023-01356-MN-0",
       color: "bg-ccis-blue",
     },
     faculty: {
-      name: "Prof. Maria Garcia",
+      name: "Prof. Carlo Inovero",
       role: "Faculty",
       id: "F1234",
       color: "bg-green-600",
@@ -71,13 +71,13 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
     student: [
       { name: "Dashboard", href: "/dashboard/student", icon: Home },
       { name: "Calendar", href: "/dashboard/student?tab=calendar", icon: Calendar },
-      { name: "Reservations", href: "/dashboard/student?tab=reservations", icon: Clock },  // Changed from 'reserve' to 'reservations'
+      { name: "Reservations", href: "/dashboard/student?tab=reservations", icon: Clock }, 
       { name: "Find Room", href: "/dashboard/student?tab=find", icon: Search },
     ],
     faculty: [
       { name: "Dashboard", href: "/dashboard/faculty", icon: Home },
       { name: "Calendar", href: "/dashboard/faculty?tab=calendar", icon: Calendar },
-      { name: "Reservations", href: "/dashboard/faculty?tab=reservations", icon: Clock },  // Changed from 'reserve' to 'reservations'
+      { name: "Reservations", href: "/dashboard/faculty?tab=reservations", icon: Clock }, 
       { name: "Find Room", href: "/dashboard/faculty?tab=find", icon: Search },
     ],
     admin: [
