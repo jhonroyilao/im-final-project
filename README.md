@@ -1,15 +1,52 @@
-# Git & GitHub Workflow Guide
+# Project Workflow Guide
 
-This guide will walk you through the steps to properly contribute your code to the project. Let’s keep everything clean, organized, and conflict-free!
+This document outlines the folder structure of the **CCIS Lab System**, a web application built using **Next.js 13+** and **TypeScript**.
 
 ---
 
+### Prerequisites
+
+- Node.js 16.8 or later
+- npm or pnpm
+---
+## 📦 Project Directory
+
+```text
+ccis-lab-system/
+├── app/                 # Next.js 13+ app directory
+├── components/          # React components
+│   ├── pages/           # Page-specific components
+│   ├── ui/              # Reusable UI components
+│   ├── layout/          # Layout components
+│   ├── calendar/        # Calendar-related components
+│   └── reservation/     # Reservation-related components
+├── public/              # Static assets
+├── styles/              # Global styles
+├── lib/                 # Utility functions
+├── hooks/               # Custom React hooks
+└── types/               # TypeScript type definitions
+
+```
+---
 ## 💻 **Step 1: Get the Project on Your Local Machine**
 Run this command in your terminal once to copy the repository to your computer:
 
 ```bash
 git clone https://github.com/jhonroyilao/im-final-project.git
 cd im-final-project
+```
+
+Install dependencies:
+```bash
+npm install
+# or
+pnpm install
+```
+Run the development server:
+```bash
+npm run dev
+# or
+pnpm dev
 ```
 ---
 
@@ -52,5 +89,6 @@ git pull origin main
 git checkout roy-branch
 git merge main
 ```
+
 
 
