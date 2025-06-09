@@ -123,6 +123,7 @@ export default function LandingPage() {
                   Reserve a Room
                 </Button>
               </Link>
+              <Link href="#features">
               <Button
                 size="lg"
                 variant="outline"
@@ -130,13 +131,14 @@ export default function LandingPage() {
               >
                 Learn More
               </Button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gradient-to-br from-white-50 to-indigo-100">
+      <section  id="features" className="py-20 bg-gradient-to-br from-white-50 to-indigo-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -150,7 +152,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="border-gray-500 border-2 hover:shadow-xl transition-all duration-300 bg-white">                <CardHeader>
+              <Card key={index} className="border-gray-500 border-2 hover:shadow-xl shadow-primary-500 transition-all duration-300 bg-white">                <CardHeader>
                   <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mb-4">
                     <feature.icon className="w-6 h-6 text-gray-900" />
                   </div>
@@ -177,7 +179,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {teamMembers.map((member, index) => (
-              <Card key={index} className="text-center border-gray-500 border-2 shadow-lg bg-white">
+              <Card key={index} className="text-center border-gray-500 border-2 shadow-lg bg-white hover:shadow-xl shadow-primary-500 transition-all duration-300">
                 <CardHeader>
                   <div className="mx-auto mb-4">
                     <Image
