@@ -55,15 +55,15 @@ interface ScheduledClass {
 }
 
 const rooms = [
-  { id: "S501", name: "S501", description: "" },
-  { id: "S502", name: "S502", description: "" },
-  { id: "S503", name: "S503", description: "" },
-  { id: "S504", name: "S504", description: "" },
-  { id: "S505", name: "S505", description: "" },
-  { id: "S506", name: "S506", description: "" },
-  { id: "S507", name: "S507", description: "" },
-  { id: "S508", name: "S508", description: "" },
-  { id: "S509", name: "S509", description: "" },
+  { id: 1, name: "S501", description: "" },
+  { id: 2, name: "S502", description: "" },
+  { id: 3, name: "S503", description: "" },
+  { id: 4, name: "S504", description: "" },
+  { id: 5, name: "S505", description: "" },
+  { id: 6, name: "S506", description: "" },
+  { id: 7, name: "S507", description: "" },
+  { id: 8, name: "S508", description: "" },
+  { id: 9, name: "S509", description: "" },
 ]
 
 const timeSlots = [
@@ -125,114 +125,44 @@ export default function RoomCalendar() {
 
   const dateRange = getDateRange()
 
+  const getClassColor = (section: string) => {
+    // Generate a consistent color based on the section
+    const colors: Record<string, string> = {
+      'BSCS 1-1': '#FFB6C1', // Light Pink
+      'BSCS 1-2': '#98FB98', // Pale Green
+      'BSCS 1-3': '#87CEEB', // Sky Blue
+      'BSCS 1-4': '#DDA0DD', // Plum
+      'BSCS 1-5': '#F0E68C', // Khaki
+      'BSCS 2-1': '#E6E6FA', // Lavender
+      'BSCS 2-2': '#FFA07A', // Light Salmon
+      'BSCS 2-3': '#98FB98', // Pale Green
+      'BSCS 2-4': '#87CEEB', // Sky Blue
+      'BSCS 2-5': '#DDA0DD', // Plum
+      'BSCS 3-1': '#F0E68C', // Khaki
+      'BSCS 3-2': '#E6E6FA', // Lavender
+      'BSCS 3-3': '#FFA07A', // Light Salmon
+      'BSCS 3-4': '#98FB98', // Pale Green
+      'BSCS 3-5': '#87CEEB', // Sky Blue
+      'BSIT 1-1': '#DDA0DD', // Plum
+      'BSIT 1-2': '#F0E68C', // Khaki
+      'BSIT 1-3': '#E6E6FA', // Lavender
+      'BSIT 1-4': '#FFA07A', // Light Salmon
+      'BSIT 1-5': '#98FB98', // Pale Green
+      'BSIT 2-1': '#87CEEB', // Sky Blue
+      'BSIT 2-2': '#DDA0DD', // Plum
+      'BSIT 2-3': '#F0E68C', // Khaki
+      'BSIT 2-4': '#E6E6FA', // Lavender
+      'BSIT 2-5': '#FFA07A', // Light Salmon
+    };
+    return colors[section] || '#E6E6FA'; // Default to Lavender if section not found
+  };
+
   useEffect(() => {
     const fetchScheduledClasses = async () => {
       try {
         console.log('Attempting to fetch scheduled classes...');
         
-        // First, let's try to get all tables
-        const { data: tables, error: tablesError } = await supabase
-          .from('scheduledclass')
-          .select('*')
-          .limit(1);
-
-        if (tablesError) {
-          console.error('Error accessing scheduledclass table:', {
-            message: tablesError.message,
-            details: tablesError.details,
-            hint: tablesError.hint,
-            code: tablesError.code
-          });
-
-          // Try alternative table names
-          const alternativeNames = ['ScheduledClass', 'scheduled_class', 'scheduledclasses'];
-          
-          for (const tableName of alternativeNames) {
-            console.log(`Trying alternative table name: ${tableName}`);
-            const { data, error } = await supabase
-              .from(tableName)
-              .select('*')
-              .limit(1);
-            
-            if (!error) {
-              console.log(`Found working table name: ${tableName}`);
-              // Use this table name for the full query
-              const { data: fullData, error: fullError } = await supabase
-                .from(tableName)
-                .select(`
-                  scheduled_class_id,
-                  room_id,
-                  section,
-                  instructor_name,
-                  day_of_week,
-                  time_start,
-                  time_end,
-                  semester,
-                  academic_year,
-                  course_code,
-                  max_student,
-                  is_active,
-                  created_at,
-                  updated_at,
-                  Room:room_id (
-                    room_number,
-                    room_capacity
-                  ),
-                  Faculty:instructor_name (
-                    faculty_number,
-                    Users:user_id (
-                      first_name,
-                      last_name
-                    )
-                  )
-                `)
-                .eq('semester', 'Second Semester')
-                .eq('academic_year', '2024-2025')
-                .eq('is_active', true);
-
-              if (fullError) {
-                console.error('Error with full query:', {
-                  message: fullError.message,
-                  details: fullError.details,
-                  hint: fullError.hint,
-                  code: fullError.code
-                });
-                return;
-              }
-
-              if (!fullData || fullData.length === 0) {
-                console.log('No scheduled classes found for the current semester');
-                setScheduledClasses([]);
-                return;
-              }
-
-              const transformedData: ScheduledClass[] = fullData.map(item => ({
-                ...item,
-                Room: item.Room?.[0],
-                Faculty: item.Faculty?.[0] ? {
-                  ...item.Faculty[0],
-                  Users: item.Faculty[0].Users?.[0]
-                } : undefined
-              }));
-
-              console.log('Successfully fetched scheduled classes:', {
-                count: transformedData.length,
-                firstClass: transformedData[0]
-              });
-              
-              setScheduledClasses(transformedData);
-              return;
-            }
-          }
-          
-          console.error('Could not find the scheduled classes table with any of the attempted names');
-          return;
-        }
-
-        // If we get here, the original table name worked
-        console.log('Found working table name: scheduledclass');
-        
-        // Now try the full query with joins
+        // Now try the full query with filters
         const { data, error } = await supabase
           .from('scheduledclass')
           .select(`
@@ -266,8 +196,18 @@ export default function RoomCalendar() {
           .eq('academic_year', '2024-2025')
           .eq('is_active', true);
 
+        console.log('Filtered query result:', { 
+          data, 
+          error,
+          filters: {
+            semester: 'Second Semester',
+            academic_year: '2024-2025',
+            is_active: true
+          }
+        });
+
         if (error) {
-          console.error('Error with full query:', {
+          console.error('Error fetching scheduled classes:', {
             message: error.message,
             details: error.details,
             hint: error.hint,
@@ -283,7 +223,20 @@ export default function RoomCalendar() {
         }
 
         const transformedData: ScheduledClass[] = data.map(item => ({
-          ...item,
+          scheduled_class_id: item.scheduled_class_id,
+          room_id: item.room_id,
+          section: item.section,
+          instructor_name: item.instructor_name,
+          day_of_week: item.day_of_week,
+          time_start: item.time_start,
+          time_end: item.time_end,
+          semester: item.semester,
+          academic_year: item.academic_year,
+          course_code: item.course_code,
+          max_student: item.max_student,
+          is_active: item.is_active,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
           Room: item.Room?.[0],
           Faculty: item.Faculty?.[0] ? {
             ...item.Faculty[0],
@@ -291,10 +244,7 @@ export default function RoomCalendar() {
           } : undefined
         }));
 
-        console.log('Successfully fetched scheduled classes:', {
-          count: transformedData.length,
-          firstClass: transformedData[0]
-        });
+        console.log('Transformed data:', transformedData);
         
         setScheduledClasses(transformedData);
       } catch (error) {
@@ -303,54 +253,88 @@ export default function RoomCalendar() {
     };
 
     fetchScheduledClasses();
-
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('scheduled_class_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'scheduledclass'
-        },
-        (payload) => {
-          console.log('Real-time update received:', payload);
-          
-          switch (payload.eventType) {
-            case 'INSERT':
-              setScheduledClasses(prev => [...prev, payload.new as ScheduledClass]);
-              break;
-            case 'UPDATE':
-              setScheduledClasses(prev => 
-                prev.map(cls => cls.scheduled_class_id === payload.new.scheduled_class_id ? payload.new as ScheduledClass : cls)
-              );
-              break;
-            case 'DELETE':
-              setScheduledClasses(prev => 
-                prev.filter(cls => cls.scheduled_class_id !== payload.old.scheduled_class_id)
-              );
-              break;
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   const getScheduledClass = (roomId: string, date: Date, time: string) => {
-    const dayOfWeek = date.getDay();
-    return scheduledClasses.find(
-      (cls) =>
-        cls.room_id.toString() === roomId &&
-        cls.day_of_week === dayOfWeek &&
-        cls.time_start <= time &&
-        cls.time_end > time &&
-        cls.is_active
+    // Convert room name (e.g., 'S509') to room ID (e.g., 9)
+    const room = rooms.find(r => r.name === roomId);
+    if (!room) {
+      console.log('Room not found:', roomId);
+      return undefined;
+    }
+
+    // Convert JavaScript day (0-6) to database day (1-7)
+    const jsDayOfWeek = date.getDay();
+    const dbDayOfWeek = jsDayOfWeek === 0 ? 7 : jsDayOfWeek; // Convert Sunday (0) to 7
+
+    console.log('Checking for scheduled class:', {
+      roomId,
+      roomNumber: room.id,
+      jsDayOfWeek,
+      dbDayOfWeek,
+      time,
+      availableClasses: scheduledClasses,
+      date: date.toISOString()
+    });
+    
+    // Log each class we're checking
+    scheduledClasses.forEach(cls => {
+      console.log('Checking class:', {
+        classRoomId: cls.room_id,
+        classDayOfWeek: cls.day_of_week,
+        classTimeStart: cls.time_start,
+        classTimeEnd: cls.time_end,
+        classIsActive: cls.is_active,
+        matches: {
+          roomMatch: cls.room_id === room.id,
+          dayMatch: cls.day_of_week === dbDayOfWeek,
+          timeMatch: cls.time_start <= time && cls.time_end > time,
+          activeMatch: cls.is_active
+        }
+      });
+    });
+    
+    const foundClass = scheduledClasses.find(
+      (cls) => {
+        const matches = cls.room_id === room.id &&
+          cls.day_of_week === dbDayOfWeek &&
+          cls.time_start <= time &&
+          cls.time_end > time &&
+          cls.is_active;
+        
+        if (matches) {
+          console.log('Found matching class:', cls);
+        }
+        
+        return matches;
+      }
     );
+
+    console.log('Found class:', foundClass);
+    return foundClass;
+  };
+
+  const renderCell = (roomId: string, date: Date, time: string) => {
+    const scheduledClass = getScheduledClass(roomId, date, time);
+    console.log('Rendering cell:', {
+      roomId,
+      date: date.toISOString(),
+      time,
+      scheduledClass,
+    });
+
+    if (scheduledClass) {
+      return (
+        <div 
+          className="p-2 rounded bg-red-200 border border-red-400 h-full"
+        >
+          <div className="font-semibold text-sm">{scheduledClass.section}</div>
+          <div className="text-xs">{scheduledClass.course_code}</div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   const TodayView = () => (
@@ -360,7 +344,6 @@ export default function RoomCalendar() {
       {rooms.map((room) => (
         <div key={room.id} className="p-2 font-medium text-center border-b bg-gray-50">
           <div className="font-semibold">{room.name}</div>
-          <div className="text-xs text-gray-500">{room.description}</div>
         </div>
       ))}
 
@@ -369,22 +352,16 @@ export default function RoomCalendar() {
         <div key={time} className="contents">
           <div className="p-2 text-gray-600 border-r border-b font-medium">{time}</div>
           {rooms.map((room) => {
-            const scheduledClass = getScheduledClass(room.id, currentDate, time);
             return (
               <div
                 key={`${time}-${room.id}`}
                 className={`p-1 border-r border-b min-h-[60px] ${
-                  scheduledClass
+                  renderCell(room.name, currentDate, time)
                     ? 'bg-red-100 border-red-300'
                     : 'hover:bg-blue-50'
                 } cursor-pointer transition-colors`}
               >
-                {scheduledClass && (
-                  <div className="text-xs">
-                    <div className="font-medium text-red-700">{scheduledClass.course_code}</div>
-                    <div className="text-red-600">Section {scheduledClass.section}</div>
-                  </div>
-                )}
+                {renderCell(room.name, currentDate, time)}
               </div>
             );
           })}
@@ -417,25 +394,16 @@ export default function RoomCalendar() {
               <div className="text-xs text-gray-500">{room.description}</div>
             </div>
             {dateRange.slice(0, 7).map((date) => {
-              const scheduledClass = getScheduledClass(room.id, date, timeSlots[0]);
               return (
                 <div
                   key={`${room.id}-${date.toISOString()}`}
                   className={`p-1 border rounded min-h-[80px] ${
-                    scheduledClass
+                    renderCell(room.name, date, timeSlots[0])
                       ? 'bg-red-100 border-red-300'
                       : 'hover:bg-blue-50'
                   } cursor-pointer transition-colors`}
                 >
-                  {scheduledClass && (
-                    <div className="text-xs">
-                      <div className="font-medium text-red-700">{scheduledClass.course_code}</div>
-                      <div className="text-red-600">Section {scheduledClass.section}</div>
-                      <div className="text-red-500">
-                        {scheduledClass.time_start} - {scheduledClass.time_end}
-                      </div>
-                    </div>
-                  )}
+                  {renderCell(room.name, date, timeSlots[0])}
                 </div>
               );
             })}
