@@ -297,7 +297,7 @@ export default function RegisterPage() {
                     type="text"
                     required
                     maxLength={5}
-                    placeholder="e.g., F1234"
+                    placeholder="e.g., 01234"
                     value={formData.facultyNumber}
                     onChange={handleInputChange}
                   />
