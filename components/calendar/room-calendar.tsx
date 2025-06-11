@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,9 +20,38 @@ import {
   endOfMonth,
   eachWeekOfInterval,
 } from "date-fns"
+import { supabase } from "@/lib/supabase"
 
 interface RoomCalendarProps {
   
+}
+
+interface ScheduledClass {
+  scheduled_class_id: number;
+  room_id: number;
+  section: string;
+  instructor_name: number;
+  day_of_week: number;
+  time_start: string;
+  time_end: string;
+  semester: string;
+  academic_year: string;
+  course_code: string;
+  max_student: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  Room?: {
+    room_number: string;
+    room_capacity: number;
+  };
+  Faculty?: {
+    faculty_number: string;
+    Users?: {
+      first_name: string;
+      last_name: string;
+    };
+  };
 }
 
 const rooms = [
@@ -56,6 +85,7 @@ const timeSlots = [
 export default function RoomCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"today" | "week" | "month">("today")
+  const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([])
 
   const navigateDate = (direction: "prev" | "next") => {
     if (view === "today") {
@@ -95,6 +125,234 @@ export default function RoomCalendar() {
 
   const dateRange = getDateRange()
 
+  useEffect(() => {
+    const fetchScheduledClasses = async () => {
+      try {
+        console.log('Attempting to fetch scheduled classes...');
+        
+        // First, let's try to get all tables
+        const { data: tables, error: tablesError } = await supabase
+          .from('scheduledclass')
+          .select('*')
+          .limit(1);
+
+        if (tablesError) {
+          console.error('Error accessing scheduledclass table:', {
+            message: tablesError.message,
+            details: tablesError.details,
+            hint: tablesError.hint,
+            code: tablesError.code
+          });
+
+          // Try alternative table names
+          const alternativeNames = ['ScheduledClass', 'scheduled_class', 'scheduledclasses'];
+          
+          for (const tableName of alternativeNames) {
+            console.log(`Trying alternative table name: ${tableName}`);
+            const { data, error } = await supabase
+              .from(tableName)
+              .select('*')
+              .limit(1);
+            
+            if (!error) {
+              console.log(`Found working table name: ${tableName}`);
+              // Use this table name for the full query
+              const { data: fullData, error: fullError } = await supabase
+                .from(tableName)
+                .select(`
+                  scheduled_class_id,
+                  room_id,
+                  section,
+                  instructor_name,
+                  day_of_week,
+                  time_start,
+                  time_end,
+                  semester,
+                  academic_year,
+                  course_code,
+                  max_student,
+                  is_active,
+                  created_at,
+                  updated_at,
+                  Room:room_id (
+                    room_number,
+                    room_capacity
+                  ),
+                  Faculty:instructor_name (
+                    faculty_number,
+                    Users:user_id (
+                      first_name,
+                      last_name
+                    )
+                  )
+                `)
+                .eq('semester', 'Second Semester')
+                .eq('academic_year', '2024-2025')
+                .eq('is_active', true);
+
+              if (fullError) {
+                console.error('Error with full query:', {
+                  message: fullError.message,
+                  details: fullError.details,
+                  hint: fullError.hint,
+                  code: fullError.code
+                });
+                return;
+              }
+
+              if (!fullData || fullData.length === 0) {
+                console.log('No scheduled classes found for the current semester');
+                setScheduledClasses([]);
+                return;
+              }
+
+              const transformedData: ScheduledClass[] = fullData.map(item => ({
+                ...item,
+                Room: item.Room?.[0],
+                Faculty: item.Faculty?.[0] ? {
+                  ...item.Faculty[0],
+                  Users: item.Faculty[0].Users?.[0]
+                } : undefined
+              }));
+
+              console.log('Successfully fetched scheduled classes:', {
+                count: transformedData.length,
+                firstClass: transformedData[0]
+              });
+              
+              setScheduledClasses(transformedData);
+              return;
+            }
+          }
+          
+          console.error('Could not find the scheduled classes table with any of the attempted names');
+          return;
+        }
+
+        // If we get here, the original table name worked
+        console.log('Found working table name: scheduledclass');
+        
+        // Now try the full query with joins
+        const { data, error } = await supabase
+          .from('scheduledclass')
+          .select(`
+            scheduled_class_id,
+            room_id,
+            section,
+            instructor_name,
+            day_of_week,
+            time_start,
+            time_end,
+            semester,
+            academic_year,
+            course_code,
+            max_student,
+            is_active,
+            created_at,
+            updated_at,
+            Room:room_id (
+              room_number,
+              room_capacity
+            ),
+            Faculty:instructor_name (
+              faculty_number,
+              Users:user_id (
+                first_name,
+                last_name
+              )
+            )
+          `)
+          .eq('semester', 'Second Semester')
+          .eq('academic_year', '2024-2025')
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error with full query:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          console.log('No scheduled classes found for the current semester');
+          setScheduledClasses([]);
+          return;
+        }
+
+        const transformedData: ScheduledClass[] = data.map(item => ({
+          ...item,
+          Room: item.Room?.[0],
+          Faculty: item.Faculty?.[0] ? {
+            ...item.Faculty[0],
+            Users: item.Faculty[0].Users?.[0]
+          } : undefined
+        }));
+
+        console.log('Successfully fetched scheduled classes:', {
+          count: transformedData.length,
+          firstClass: transformedData[0]
+        });
+        
+        setScheduledClasses(transformedData);
+      } catch (error) {
+        console.error('Unexpected error in fetchScheduledClasses:', error);
+      }
+    };
+
+    fetchScheduledClasses();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('scheduled_class_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'scheduledclass'
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          
+          switch (payload.eventType) {
+            case 'INSERT':
+              setScheduledClasses(prev => [...prev, payload.new as ScheduledClass]);
+              break;
+            case 'UPDATE':
+              setScheduledClasses(prev => 
+                prev.map(cls => cls.scheduled_class_id === payload.new.scheduled_class_id ? payload.new as ScheduledClass : cls)
+              );
+              break;
+            case 'DELETE':
+              setScheduledClasses(prev => 
+                prev.filter(cls => cls.scheduled_class_id !== payload.old.scheduled_class_id)
+              );
+              break;
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const getScheduledClass = (roomId: string, date: Date, time: string) => {
+    const dayOfWeek = date.getDay();
+    return scheduledClasses.find(
+      (cls) =>
+        cls.room_id.toString() === roomId &&
+        cls.day_of_week === dayOfWeek &&
+        cls.time_start <= time &&
+        cls.time_end > time &&
+        cls.is_active
+    );
+  };
+
   const TodayView = () => (
     <div className="grid grid-cols-10 gap-1 text-sm">
       {/* Header */}
@@ -110,14 +368,26 @@ export default function RoomCalendar() {
       {timeSlots.map((time) => (
         <div key={time} className="contents">
           <div className="p-2 text-gray-600 border-r border-b font-medium">{time}</div>
-          {rooms.map((room) => (
-            <div
-              key={`${time}-${room.id}`}
-              className="p-1 border-r border-b min-h-[60px] hover:bg-blue-50 cursor-pointer transition-colors"
-            >
-              {/* Empty slot - can be clicked to reserve */}
-            </div>
-          ))}
+          {rooms.map((room) => {
+            const scheduledClass = getScheduledClass(room.id, currentDate, time);
+            return (
+              <div
+                key={`${time}-${room.id}`}
+                className={`p-1 border-r border-b min-h-[60px] ${
+                  scheduledClass
+                    ? 'bg-red-100 border-red-300'
+                    : 'hover:bg-blue-50'
+                } cursor-pointer transition-colors`}
+              >
+                {scheduledClass && (
+                  <div className="text-xs">
+                    <div className="font-medium text-red-700">{scheduledClass.course_code}</div>
+                    <div className="text-red-600">Section {scheduledClass.section}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
@@ -146,14 +416,29 @@ export default function RoomCalendar() {
               <div className="font-semibold text-sm">{room.name}</div>
               <div className="text-xs text-gray-500">{room.description}</div>
             </div>
-            {dateRange.slice(0, 7).map((date) => (
-              <div
-                key={`${room.id}-${date.toISOString()}`}
-                className="p-1 border rounded min-h-[80px] hover:bg-blue-50 cursor-pointer transition-colors"
-              >
-                {/* Empty slot - can show reservations here */}
-              </div>
-            ))}
+            {dateRange.slice(0, 7).map((date) => {
+              const scheduledClass = getScheduledClass(room.id, date, timeSlots[0]);
+              return (
+                <div
+                  key={`${room.id}-${date.toISOString()}`}
+                  className={`p-1 border rounded min-h-[80px] ${
+                    scheduledClass
+                      ? 'bg-red-100 border-red-300'
+                      : 'hover:bg-blue-50'
+                  } cursor-pointer transition-colors`}
+                >
+                  {scheduledClass && (
+                    <div className="text-xs">
+                      <div className="font-medium text-red-700">{scheduledClass.course_code}</div>
+                      <div className="text-red-600">Section {scheduledClass.section}</div>
+                      <div className="text-red-500">
+                        {scheduledClass.time_start} - {scheduledClass.time_end}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
