@@ -26,8 +26,8 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   const validateEmail = (email: string) => {
-    // Basic email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    // More comprehensive email validation regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
     return emailRegex.test(email)
   }
 
@@ -50,205 +50,184 @@ export default function LoginPage() {
 
       // Validate email format
       if (!validateEmail(normalizedEmail)) {
+        console.error('Invalid email format:', normalizedEmail)
         setError('Please enter a valid email address')
+        setLoading(false)
         return
       }
 
-      // First, check if the user exists in our database
+      // Simple query to check if user exists
       const { data: userData, error: userCheckError } = await supabase
         .from('users')
-        .select('*')
+        .select('user_id, email, user_role')
         .eq('email', normalizedEmail)
-        .single()
-
-      console.log('Initial user check:', { userData, userCheckError })
+        .maybeSingle()
 
       if (userCheckError) {
-        console.error('Error checking user:', userCheckError)
-        setError('User not found in database')
+        console.error('Database error:', userCheckError)
+        setError('Error connecting to database')
         return
       }
 
-      // Try to sign in with normalized email
+      if (!userData) {
+        console.error('No user found with email:', normalizedEmail)
+        setError('User not found')
+        return
+      }
+
+      console.log('Found user:', userData)
+
+      // Try to sign in
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: formData.password,
       })
 
-      console.log('Auth result:', { authData, authError })
-
       if (authError) {
-        // If sign in fails, try to create a new user
-        console.log('Sign in failed, attempting to create new user')
+        console.log('Auth error, attempting to create auth user:', authError)
         
-        // Create new user in Supabase auth
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: formData.password,
-          options: {
-            data: {
-              user_id: userData.id,
-              role: userData.user_role
+        // If sign in fails, try to create the auth user
+        try {
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: normalizedEmail,
+            password: formData.password,
+            options: {
+              data: {
+                user_id: userData.user_id,
+                role: userData.user_role
+              }
             }
+          })
+
+          if (signUpError) {
+            // Log the complete error object
+            console.error('Sign up error:', {
+              error: signUpError,
+              message: signUpError.message,
+              status: signUpError.status,
+              name: signUpError.name,
+              stack: signUpError.stack
+            })
+            
+            // Check if user already exists in auth
+            const { data: existingUser } = await supabase.auth.getUser()
+            console.log('Existing user check:', existingUser)
+
+            if (existingUser?.user) {
+              // User exists in auth, try to sign in again
+              console.log('User exists in auth, attempting to sign in...')
+              const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
+                email: normalizedEmail,
+                password: formData.password,
+              })
+
+              if (retryAuthError) {
+                console.error('Retry auth error:', retryAuthError)
+                setError('Invalid email or password')
+                return
+              }
+
+              // Store user info
+              localStorage.setItem('userId', userData.user_id)
+              localStorage.setItem('userRole', userData.user_role)
+              
+              // Map role to dashboard
+              const roleMap: Record<number, string> = {
+                1: 'admin',
+                2: 'faculty',
+                3: 'student'
+              }
+
+              const userRole = Number(userData.user_role)
+              if (isNaN(userRole)) {
+                setError('Invalid user role format')
+                return
+              }
+
+              const dashboardPath = roleMap[userRole]
+              if (!dashboardPath) {
+                setError('Invalid user role')
+                return
+              }
+
+              router.push(`/dashboard/${dashboardPath}`)
+              return
+            }
+
+            // Handle specific error cases
+            if (signUpError.message?.toLowerCase().includes('email')) {
+              setError('Invalid email format. Please check your email address.')
+            } else if (signUpError.message?.toLowerCase().includes('password')) {
+              setError('Password must be at least 6 characters long')
+            } else {
+              setError('Failed to create account. Please try again.')
+            }
+            return
           }
-        })
 
-        console.log('Sign up result:', { signUpData, signUpError })
-
-        if (signUpError) {
-          // Handle specific Supabase error cases
-          const errorMessage = signUpError.message || signUpError.toString()
-          console.error('Sign up error details:', errorMessage)
-
-          if (errorMessage.toLowerCase().includes('email')) {
-            setError('Please enter a valid email address')
-          } else if (errorMessage.toLowerCase().includes('password')) {
-            setError('Password must be at least 6 characters long')
-          } else if (errorMessage.toLowerCase().includes('already registered')) {
-            setError('This email is already registered. Please try signing in instead.')
-          } else {
-            setError('Failed to create account. Please try again later.')
+          if (!signUpData.user) {
+            setError('Failed to create account')
+            return
           }
+
+          // Store user info
+          localStorage.setItem('userId', userData.user_id)
+          localStorage.setItem('userRole', userData.user_role)
+          
+          // Map role to dashboard
+          const roleMap: Record<number, string> = {
+            1: 'admin',
+            2: 'faculty',
+            3: 'student'
+          }
+
+          const userRole = Number(userData.user_role)
+          if (isNaN(userRole)) {
+            setError('Invalid user role format')
+            return
+          }
+
+          const dashboardPath = roleMap[userRole]
+          if (!dashboardPath) {
+            setError('Invalid user role')
+            return
+          }
+
+          router.push(`/dashboard/${dashboardPath}`)
+        } catch (signUpErr) {
+          console.error('Unexpected error during sign up:', signUpErr)
+          setError('An unexpected error occurred during account creation')
           return
         }
-
-        if (!signUpData.user) {
-          setError("No user data returned from sign up")
-          return
-        }
-
-        // Store user info in localStorage
-        localStorage.setItem('userId', userData.id)
+      } else {
+        // Store user info for existing auth user
+        localStorage.setItem('userId', userData.user_id)
         localStorage.setItem('userRole', userData.user_role)
-        localStorage.setItem('userName', `${userData.first_name} ${userData.last_name}`)
-
-        // Map numeric role to dashboard path
-        const roleMap: Record<number, string> = {
-          1: 'admin',
-          2: 'faculty',
-          3: 'student'
-        }
-        
-        // Ensure user_role is a number
-        const userRole = Number(userData.user_role)
-        
-        if (isNaN(userRole)) {
-          console.error('Invalid role value:', userData.user_role)
-          setError('Invalid user role format')
-          return
-        }
-
-        console.log('Parsed user role:', userRole)
-        console.log('Role mapping:', {
-          userRole: userRole,
-          mappedRole: roleMap[userRole]
-        })
-
-        const dashboardPath = roleMap[userRole]
-        if (!dashboardPath) {
-          console.error('Invalid user role number:', userRole)
-          setError('Invalid user role')
-          return
-        }
-
-        console.log('Redirecting to:', `/dashboard/${dashboardPath}`)
-        router.push(`/dashboard/${dashboardPath}`)
-        return
       }
-
-      if (!authData.user) {
-        setError("No user data returned")
-        return
-      }
-
-      // Get user role and additional info
-      const { data: userInfo, error: userError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          email,
-          user_role,
-          first_name,
-          last_name,
-          userrole!inner (
-            role_name
-          ),
-          Students:students (
-            student_number,
-            first_name,
-            surname
-          ),
-          Faculty:faculty (
-            faculty_number,
-            first_name,
-            surname
-          )
-        `)
-        .eq('email', normalizedEmail)
-        .single()
-
-      console.log('Full user info result:', { userInfo, userError })
-
-      if (userError) {
-        console.error('Database error:', userError)
-        setError('Failed to fetch user information')
-        return
-      }
-
-      if (!userInfo) {
-        setError("User data not found")
-        return
-      }
-
-      // Ensure we have a valid role
-      if (!userInfo.user_role) {
-        console.error('No user role found:', userInfo)
-        setError('User role not found')
-        return
-      }
-
-      console.log('User role from database:', userInfo.user_role)
-      console.log('User role details:', userInfo.userrole)
-
-      // Store user info in localStorage
-      localStorage.setItem('userId', userInfo.id)
-      localStorage.setItem('userRole', userInfo.user_role)
-      localStorage.setItem('userName', `${userInfo.first_name} ${userInfo.last_name}`)
-
-      // Map numeric role to dashboard path
+      
+      // Map role to dashboard
       const roleMap: Record<number, string> = {
         1: 'admin',
         2: 'faculty',
         3: 'student'
       }
-      
-      // Ensure user_role is a number
-      const userRole = Number(userInfo.user_role)
-      
+
+      const userRole = Number(userData.user_role)
       if (isNaN(userRole)) {
-        console.error('Invalid role value:', userInfo.user_role)
         setError('Invalid user role format')
         return
       }
 
-      console.log('Parsed user role:', userRole)
-      console.log('Role mapping:', {
-        userRole: userRole,
-        mappedRole: roleMap[userRole]
-      })
-
       const dashboardPath = roleMap[userRole]
       if (!dashboardPath) {
-        console.error('Invalid user role number:', userRole)
         setError('Invalid user role')
         return
       }
 
-      console.log('Redirecting to:', `/dashboard/${dashboardPath}`)
       router.push(`/dashboard/${dashboardPath}`)
-    } catch (err: any) {
-      console.error("Login error:", err)
-      setError(err.message || "Invalid email or password")
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('An error occurred during login')
     } finally {
       setLoading(false)
     }
