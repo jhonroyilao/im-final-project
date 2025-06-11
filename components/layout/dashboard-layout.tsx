@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -30,42 +30,146 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Image from "next/image"
+import { supabase } from "@/lib/supabase"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
   userRole: "student" | "faculty" | "admin"
 }
 
+interface UserInfo {
+  name: string
+  role: string
+  id: string
+  color: string
+}
+
 export default function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [userInfo, setUserInfo] = useState<UserInfo>({
+    name: "Loading...",
+    role: userRole.charAt(0).toUpperCase() + userRole.slice(1),
+    id: "Loading...",
+    color: userRole === "faculty" ? "bg-green-600" : "bg-ccis-blue"
+  })
 
-  const handleLogout = () => {
-    // In a real app, this would handle logout logic
-    router.push("/")
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        // Get user ID from localStorage
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          console.error("No user ID found in localStorage")
+          router.push("/auth/login")
+          return
+        }
+
+        // Fetch user details from the users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+
+        if (userError) {
+          console.error("Error fetching user data:", userError)
+          router.push("/auth/login")
+          return
+        }
+
+        if (!userData) {
+          console.error("No user data found")
+          router.push("/auth/login")
+          return
+        }
+
+        // Verify user role matches the expected role
+        const storedRole = localStorage.getItem('userRole')
+        if (!storedRole || Number(storedRole) !== userData.user_role) {
+          console.error("User role mismatch")
+          router.push("/auth/login")
+          return
+        }
+
+        // Fetch role-specific information
+        if (userRole === 'student') {
+          const { data: studentData, error: studentError } = await supabase
+            .from('student')
+            .select('*')
+            .eq('user_id', userId)
+            .single()
+
+          if (studentError) {
+            console.error("Error fetching student data:", studentError)
+            router.push("/auth/login")
+            return
+          }
+
+          if (!studentData) {
+            console.error("No student data found")
+            router.push("/auth/login")
+            return
+          }
+
+          setUserInfo({
+            name: `${userData.first_name} ${userData.last_name}`,
+            role: "Student",
+            id: studentData.student_number,
+            color: "bg-ccis-blue"
+          })
+        } else if (userRole === 'faculty') {
+          const { data: facultyData, error: facultyError } = await supabase
+            .from('faculty')
+            .select('*')
+            .eq('user_id', userId)
+            .single()
+
+          if (facultyError) {
+            console.error("Error fetching faculty data:", facultyError)
+            router.push("/auth/login")
+            return
+          }
+
+          if (!facultyData) {
+            console.error("No faculty data found")
+            router.push("/auth/login")
+            return
+          }
+
+          setUserInfo({
+            name: `${userData.first_name} ${userData.last_name}`,
+            role: "Faculty",
+            id: facultyData.faculty_number,
+            color: "bg-green-600"
+          })
+        } else if (userRole === 'admin') {
+          setUserInfo({
+            name: `${userData.first_name} ${userData.last_name}`,
+            role: "Administrator",
+            id: "ADMIN",
+            color: "bg-ccis-blue"
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching user info:", error)
+        router.push("/auth/login")
+      }
+    }
+
+    fetchUserInfo()
+  }, [userRole, router])
+
+  const handleLogout = async () => {
+    try {
+      // Clear localStorage
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userRole')
+      router.push("/")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
   }
-
-  const userInfo = {
-    student: {
-      name: "Jhon Roy Ilao",
-      role: "Student",
-      id: "2023-01356-MN-0",
-      color: "bg-ccis-blue",
-    },
-    faculty: {
-      name: "Prof. Carlo Inovero",
-      role: "Faculty",
-      id: "F1234",
-      color: "bg-green-600",
-    },
-    admin: {
-      name: "Admin User",
-      role: "Administrator",
-      id: "ADMIN001",
-      color: "bg-ccis-blue",
-    },
-  }[userRole]
-
 
   const navigationItems = {
     student: [
@@ -199,7 +303,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
                     <div className={`w-8 h-8 rounded-full ${userInfo.color} flex items-center justify-center`}>
                       <span className="text-white font-medium text-sm">{userInfo.name.charAt(0)}</span>
                     </div>
-                    <span className="hidden md:inline-block text-sm font-medium text-gray-700">{userInfo.name}</span>
+                    <span className="text-sm font-medium text-gray-700">{userInfo.name}</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -207,20 +311,13 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium">{userInfo.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {userInfo.role} • {userInfo.id}
-                      </p>
+                      <p className="text-xs text-gray-500">{userInfo.role}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign out</span>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -230,7 +327,9 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {children}
+      </main>
 
       {/* Footer */}
       <footer className="bg-white border-t py-4">

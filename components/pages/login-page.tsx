@@ -44,166 +44,30 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Normalize email (trim whitespace and convert to lowercase)
-      const normalizedEmail = formData.email.trim().toLowerCase()
-      console.log('Attempting to sign in with normalized email:', normalizedEmail)
+      // Normalize email to lowercase
+      const normalizedEmail = formData.email.toLowerCase()
 
-      // Validate email format
-      if (!validateEmail(normalizedEmail)) {
-        console.error('Invalid email format:', normalizedEmail)
-        setError('Please enter a valid email address')
-        setLoading(false)
-        return
-      }
-
-      // Simple query to check if user exists
-      const { data: userData, error: userCheckError } = await supabase
+      // Check if user exists in our users table
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('user_id, email, user_role')
+        .select('*')
         .eq('email', normalizedEmail)
-        .maybeSingle()
+        .single()
 
-      if (userCheckError) {
-        console.error('Database error:', userCheckError)
-        setError('Error connecting to database')
+      if (userError) {
+        console.error('Error checking user:', userError)
+        setError('Invalid email or password')
         return
       }
 
       if (!userData) {
-        console.error('No user found with email:', normalizedEmail)
-        setError('User not found')
+        setError('Invalid email or password')
         return
       }
 
-      console.log('Found user:', userData)
-
-      // Try to sign in
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: formData.password,
-      })
-
-      if (authError) {
-        console.log('Auth error, attempting to create auth user:', authError)
-        
-        // If sign in fails, try to create the auth user
-        try {
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: normalizedEmail,
-            password: formData.password,
-            options: {
-              data: {
-                user_id: userData.user_id,
-                role: userData.user_role
-              }
-            }
-          })
-
-          if (signUpError) {
-            // Log the complete error object
-            console.error('Sign up error:', {
-              error: signUpError,
-              message: signUpError.message,
-              status: signUpError.status,
-              name: signUpError.name,
-              stack: signUpError.stack
-            })
-            
-            // Check if user already exists in auth
-            const { data: existingUser } = await supabase.auth.getUser()
-            console.log('Existing user check:', existingUser)
-
-            if (existingUser?.user) {
-              // User exists in auth, try to sign in again
-              console.log('User exists in auth, attempting to sign in...')
-              const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
-                email: normalizedEmail,
-                password: formData.password,
-              })
-
-              if (retryAuthError) {
-                console.error('Retry auth error:', retryAuthError)
-                setError('Invalid email or password')
-                return
-              }
-
-              // Store user info
-              localStorage.setItem('userId', userData.user_id)
-              localStorage.setItem('userRole', userData.user_role)
-              
-              // Map role to dashboard
-              const roleMap: Record<number, string> = {
-                1: 'admin',
-                2: 'faculty',
-                3: 'student'
-              }
-
-              const userRole = Number(userData.user_role)
-              if (isNaN(userRole)) {
-                setError('Invalid user role format')
-                return
-              }
-
-              const dashboardPath = roleMap[userRole]
-              if (!dashboardPath) {
-                setError('Invalid user role')
-                return
-              }
-
-              router.push(`/dashboard/${dashboardPath}`)
-              return
-            }
-
-            // Handle specific error cases
-            if (signUpError.message?.toLowerCase().includes('email')) {
-              setError('Invalid email format. Please check your email address.')
-            } else if (signUpError.message?.toLowerCase().includes('password')) {
-              setError('Password must be at least 6 characters long')
-            } else {
-              setError('Failed to create account. Please try again.')
-            }
-            return
-          }
-
-          if (!signUpData.user) {
-            setError('Failed to create account')
-            return
-          }
-
-          // Store user info
-          localStorage.setItem('userId', userData.user_id)
-          localStorage.setItem('userRole', userData.user_role)
-          
-          // Map role to dashboard
-          const roleMap: Record<number, string> = {
-            1: 'admin',
-            2: 'faculty',
-            3: 'student'
-          }
-
-          const userRole = Number(userData.user_role)
-          if (isNaN(userRole)) {
-            setError('Invalid user role format')
-            return
-          }
-
-          const dashboardPath = roleMap[userRole]
-          if (!dashboardPath) {
-            setError('Invalid user role')
-            return
-          }
-
-          router.push(`/dashboard/${dashboardPath}`)
-        } catch (signUpErr) {
-          console.error('Unexpected error during sign up:', signUpErr)
-          setError('An unexpected error occurred during account creation')
-          return
-        }
-      } else {
-        // Store user info for existing auth user
-        localStorage.setItem('userId', userData.user_id)
-        localStorage.setItem('userRole', userData.user_role)
-      }
+      // Store user info
+      localStorage.setItem('userId', userData.user_id)
+      localStorage.setItem('userRole', userData.user_role)
       
       // Map role to dashboard
       const roleMap: Record<number, string> = {
@@ -224,6 +88,7 @@ export default function LoginPage() {
         return
       }
 
+      // Redirect to the appropriate dashboard
       router.push(`/dashboard/${dashboardPath}`)
     } catch (err) {
       console.error('Login error:', err)
