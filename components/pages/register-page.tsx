@@ -11,11 +11,26 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GraduationCap, Users, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
+import { PostgrestError } from "@supabase/supabase-js"
 
 export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const role = searchParams.get("role") || "student"
+
+  // Map role names to role IDs
+  const roleIdMap = {
+    student: 3,
+    faculty: 2,
+    admin: 1
+  }
+
+  // Map department names to match database
+  const departmentMap = {
+    "Computer Science": "Department of Computer Science",
+    "Information Technology": "Deoartment of Information and Technology"
+  }
 
   const [formData, setFormData] = useState({
     // Common fields
@@ -28,12 +43,18 @@ export default function RegisterPage() {
     // Role-specific fields
     studentNumber: "",
     facultyNumber: "",
+    contactNumber: "",
+    department: "",
+    section: "",
+    year: "",
   })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
@@ -59,13 +80,144 @@ export default function RegisterPage() {
     }
 
     try {
-      // Demo mode - simulate successful registration
-      setTimeout(() => {
-        router.push("/auth/login?message=Registration successful! Please sign in. (Demo Mode)")
-      }, 1000)
-    } catch (err: any) {
-      console.error("Registration error:", err)
-      setError(err.message || "An error occurred during registration")
+      // Get the department_id based on the department name
+      const mappedDepartment = departmentMap[formData.department as keyof typeof departmentMap]
+      console.log("Looking up department:", mappedDepartment)
+
+      // First, let's check what departments exist in the database
+      const { data: allDepartments, error: deptListError } = await supabase
+        .from('department')
+        .select('department_id, department_name')
+
+      if (deptListError) {
+        console.error("Error fetching departments:", deptListError)
+        throw new Error("Failed to fetch departments list")
+      }
+
+      console.log("Available departments:", allDepartments)
+      console.log("Looking for department:", mappedDepartment)
+
+      // Now try to find the specific department
+      const { data: deptData, error: deptError } = await supabase
+        .from('department')
+        .select('department_id')
+        .eq('department_name', mappedDepartment)
+
+      if (deptError) {
+        console.error("Department lookup error:", {
+          error: deptError,
+          department: mappedDepartment,
+          availableDepartments: allDepartments
+        })
+        throw new Error(`Failed to find department: ${deptError.message}`)
+      }
+
+      if (!deptData || deptData.length === 0) {
+        console.error("Department not found. Available departments:", allDepartments)
+        throw new Error(`Department not found: ${mappedDepartment}. Available departments: ${JSON.stringify(allDepartments)}`)
+      }
+
+      // Use the first matching department
+      const selectedDepartment = deptData[0]
+      console.log("Found department:", selectedDepartment)
+
+      // Create user record in Users table
+      const userData = {
+        user_role: roleIdMap[role as keyof typeof roleIdMap],
+        first_name: formData.firstName,
+        middle_name: formData.middleName,
+        last_name: formData.surname,
+        department: selectedDepartment.department_id,
+        email: formData.email,
+        contact_number: formData.contactNumber,
+        password: formData.password,
+        is_active: true
+      }
+
+      console.log("Creating user with data:", { ...userData, password: '[REDACTED]' })
+
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .insert([userData])
+        .select()
+        .single()
+
+      if (userError) {
+        console.error("User creation error:", {
+          error: userError,
+          userData: { ...userData, password: '[REDACTED]' }
+        })
+        throw new Error(`Failed to create user: ${userError.message}`)
+      }
+
+      if (!newUser) {
+        throw new Error("User creation succeeded but no user data returned")
+      }
+
+      console.log("Created user:", { ...newUser, password: '[REDACTED]' })
+
+      // If user is a student, create student record
+      if (role === 'student') {
+        const studentData = {
+          user_id: newUser.user_id,
+          student_number: formData.studentNumber,
+          year_level: formData.year,
+          section: formData.section
+        }
+
+        console.log("Creating student record:", studentData)
+
+        const { error: studentError } = await supabase
+          .from('student')
+          .insert([studentData])
+
+        if (studentError) {
+          console.error("Student record creation error:", {
+            error: studentError,
+            studentData
+          })
+          throw new Error(`Failed to create student record: ${studentError.message}`)
+        }
+      }
+
+      // If user is faculty, create faculty record
+      if (role === 'faculty') {
+        const facultyData = {
+          user_id: newUser.user_id,
+          faculty_number: formData.facultyNumber
+        }
+
+        console.log("Creating faculty record:", facultyData)
+
+        const { error: facultyError } = await supabase
+          .from('faculty')
+          .insert([facultyData])
+
+        if (facultyError) {
+          console.error("Faculty record creation error:", {
+            error: facultyError,
+            facultyData
+          })
+          throw new Error(`Failed to create faculty record: ${facultyError.message}`)
+        }
+      }
+
+      // Redirect to login page with success message
+      router.push("/auth/login?message=Registration successful! Please sign in.")
+    } catch (err) {
+      console.error("Registration error:", {
+        error: err,
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined
+      })
+      
+      if (err instanceof PostgrestError) {
+        setError(err.message)
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("An error occurred during registration. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
@@ -100,8 +252,6 @@ export default function RegisterPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to role selection</span>
           </Link>
-
-        
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{config.title}</h1>
           <p className="text-gray-600">{config.description}</p>
@@ -202,6 +352,35 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contactNumber">Contact Number *</Label>
+                <Input
+                  id="contactNumber"
+                  name="contactNumber"
+                  type="tel"
+                  required
+                  placeholder="e.g., 09123456789"
+                  value={formData.contactNumber}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="department">Department *</Label>
+                <select
+                  id="department"
+                  name="department"
+                  required
+                  value={formData.department}
+                  onChange={handleInputChange}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select Department</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Information Technology">Information Technology</option>
+                </select>
               </div>
 
               <div className="space-y-2">

@@ -43,7 +43,7 @@ interface Reservation {
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
-  Room: {
+  room: {
     room_number: string;
     room_capacity: number;
   };
@@ -57,68 +57,109 @@ export default function StudentDashboard() {
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true when component mounts
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Update active tab when URL changes
   useEffect(() => {
+    if (!isClient) return
+
     const tab = searchParams.get('tab')
     if (tab) {
       setActiveTab(tab)
     }
-  }, [searchParams])
+  }, [searchParams, isClient])
 
   // Fetch student information and reservations
   useEffect(() => {
+    if (!isClient) return
+
     const fetchStudentData = async () => {
       try {
-        // Get the current user's ID from localStorage (you should implement proper auth)
+        setError(null)
+        // Get the current user's ID from localStorage
         const userId = localStorage.getItem('userId')
         if (!userId) {
           console.error('No user ID found')
+          setError('User ID not found. Please log in again.')
           return
         }
 
-        // Fetch student information
+        console.log('Fetching student data for user ID:', userId)
+
+        // First check if the user exists in the users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+
+        if (userError) {
+          console.error('Error fetching user data:', {
+            error: userError,
+            message: userError.message,
+            details: userError.details,
+            hint: userError.hint,
+            code: userError.code
+          })
+          setError('Failed to load user information. Please try again.')
+          return
+        }
+
+        if (!userData) {
+          console.error('No user found with ID:', userId)
+          setError('User not found. Please contact support.')
+          return
+        }
+
+        // Then fetch student information
         const { data: studentData, error: studentError } = await supabase
           .from('student')
-          .select(`
-            user_id,
-            student_number,
-            year_level,
-            section,
-            Users:user_id (
-              first_name,
-              middle_name,
-              last_name,
-              email
-            )
-          `)
+          .select('*')
           .eq('user_id', userId)
           .single()
 
         if (studentError) {
-          console.error('Error fetching student data:', studentError)
+          console.error('Error fetching student data:', {
+            error: studentError,
+            message: studentError.message,
+            details: studentError.details,
+            hint: studentError.hint,
+            code: studentError.code
+          })
+          setError('Failed to load student information. Please try again.')
           return
         }
 
-        if (studentData) {
-          setStudentInfo({
-            user_id: studentData.user_id,
-            first_name: studentData.Users[0].first_name,
-            middle_name: studentData.Users[0].middle_name,
-            last_name: studentData.Users[0].last_name,
-            email: studentData.Users[0].email,
-            student_number: studentData.student_number,
-            year_level: studentData.year_level,
-            section: studentData.section
-          })
+        if (!studentData) {
+          console.error('No student data found for user ID:', userId)
+          setError('Student information not found. Please contact support.')
+          return
         }
+
+        // Combine the data
+        setStudentInfo({
+          user_id: studentData.user_id,
+          first_name: userData.first_name,
+          middle_name: userData.middle_name,
+          last_name: userData.last_name,
+          email: userData.email,
+          student_number: studentData.student_number,
+          year_level: studentData.year_level,
+          section: studentData.section
+        })
 
         // Fetch student's reservations
         const { data: reservationData, error: reservationError } = await supabase
           .from('reservation')
           .select(`
             *,
-            Room:room_id (
+            room!inner (
               room_number,
               room_capacity
             )
@@ -127,20 +168,33 @@ export default function StudentDashboard() {
           .order('reservation_date', { ascending: true })
 
         if (reservationError) {
-          console.error('Error fetching reservations:', reservationError)
+          console.error('Error fetching reservations:', {
+            error: reservationError,
+            message: reservationError.message,
+            details: reservationError.details,
+            hint: reservationError.hint,
+            code: reservationError.code
+          })
+          setError('Failed to load reservations. Please try again.')
           return
         }
 
         setReservations(reservationData || [])
       } catch (error) {
-        console.error('Error in fetchStudentData:', error)
+        console.error('Unexpected error in fetchStudentData:', error)
+        setError('An unexpected error occurred. Please try again.')
       } finally {
         setLoading(false)
       }
     }
 
     fetchStudentData()
-  }, [])
+  }, [isClient])
+
+  // Don't render anything until we're on the client
+  if (!isClient) {
+    return null
+  }
 
   const getStatusBadge = (status: number) => {
     switch (status) {
@@ -168,6 +222,12 @@ export default function StudentDashboard() {
             </h1>
             <p className="text-gray-600">Book your lab reservations here.</p>
           </div>
+
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
 
           <Tabs value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
             <div className="flex justify-between items-center border-b-2 border-primary pb-2">
@@ -255,10 +315,12 @@ export default function StudentDashboard() {
                           <TableRow key={reservation.reservation_id}>
                             <TableCell>{format(new Date(reservation.reservation_date), 'MMM d, yyyy')}</TableCell>
                             <TableCell>
-                              {format(new Date(`2000-01-01T${reservation.start_time}`), 'h:mm a')} - 
+                              {format(new Date(`2000-01-01T${reservation.start_time}`), 'h:mm a')} - {' '}
                               {format(new Date(`2000-01-01T${reservation.end_time}`), 'h:mm a')}
                             </TableCell>
-                            <TableCell>Room {reservation.Room.room_number}</TableCell>
+                            <TableCell>
+                              Room {reservation.room?.room_number || 'N/A'}
+                            </TableCell>
                             <TableCell>{reservation.purpose}</TableCell>
                             <TableCell>{getStatusBadge(reservation.room_status)}</TableCell>
                           </TableRow>
