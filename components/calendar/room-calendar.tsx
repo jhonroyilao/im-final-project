@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
+import { ChevronLeft, ChevronRight, CalendarIcon, Search, Plus } from "lucide-react"
 import {
   format,
   addDays,
@@ -21,8 +21,12 @@ import {
   eachWeekOfInterval,
 } from "date-fns"
 import { supabase } from "@/lib/supabase"
+import FindRoomModal from "@/components/reservation/find-room-modal"
+import ReserveRoomModal from "@/components/reservation/reserve-room-modal"
 
-type RoomCalendarProps = {}
+type RoomCalendarProps = {
+  userRole?: "student" | "faculty" | "admin"
+}
 
 interface ScheduledClass {
   scheduled_class_id: number
@@ -49,6 +53,29 @@ interface ScheduledClass {
       first_name: string
       last_name: string
     }
+  }
+}
+
+interface Reservation {
+  reservation_id: number
+  user_id: number
+  room_id: number
+  reservation_date: string
+  start_time: string
+  end_time: string
+  room_status: number
+  approved_by: number | null
+  approved_at: string | null
+  created_at: string
+  purpose?: string
+  users?: {
+    first_name: string
+    middle_name: string
+    last_name: string
+    email: string
+  }
+  room?: {
+    room_number: string
   }
 }
 
@@ -120,10 +147,13 @@ const formatTimeDisplay = (timeStr: string): string => {
   return `${displayHours}:${minutes} ${ampm}`
 }
 
-export default function RoomCalendar() {
+export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"today" | "week" | "month">("today")
   const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([])
+  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [findRoomModalOpen, setFindRoomModalOpen] = useState(false)
+  const [reserveRoomModalOpen, setReserveRoomModalOpen] = useState(false)
 
   const navigateDate = (direction: "prev" | "next") => {
     if (view === "today") {
@@ -165,6 +195,12 @@ export default function RoomCalendar() {
 
   const getClassColor = (section: string) => {
     return "bg-red-200 border-red-400 text-red-800"
+  }
+
+  const getReservationColor = (status: number) => {
+    if (status === 1) return "bg-blue-200 border-blue-400 text-blue-800" // Approved
+    if (status === 2) return "bg-red-200 border-red-400 text-red-800" // Rejected
+    return "bg-yellow-200 border-yellow-400 text-yellow-800" // Pending
   }
 
   useEffect(() => {
@@ -247,8 +283,42 @@ export default function RoomCalendar() {
       }
     }
 
+    const fetchReservations = async () => {
+      try {
+        console.log("Fetching reservations...")
+
+        // Get current date range for the view
+        const dates = getDateRange()
+        const dateStrings = dates.map((date) => format(date, "yyyy-MM-dd"))
+
+        const { data, error } = await supabase
+          .from("reservation")
+          .select(`
+            *,
+            users:user_id (
+              first_name,
+              middle_name,
+              last_name,
+              email
+            ),
+            room:room_id (
+              room_number
+            )
+          `)
+          .in("reservation_date", dateStrings)
+          .in("room_status", [0, 1]) // Pending or approved
+
+        if (error) throw error
+        console.log("Fetched reservations:", data)
+        setReservations(data || [])
+      } catch (error) {
+        console.error("Error fetching reservations:", error)
+      }
+    }
+
     fetchScheduledClasses()
-  }, [])
+    fetchReservations()
+  }, [currentDate, view])
 
   const getScheduledClassesForRoom = (roomId: string, date: Date) => {
     const room = rooms.find((r) => r.name === roomId)
@@ -262,6 +332,53 @@ export default function RoomCalendar() {
     )
 
     return classes
+  }
+
+  const getReservationsForRoom = (roomId: string, date: Date) => {
+    const room = rooms.find((r) => r.name === roomId)
+    if (!room) return []
+
+    const dateString = format(date, "yyyy-MM-dd")
+
+    const roomReservations = reservations.filter(
+      (res) => res.room_id === room.id && res.reservation_date === dateString,
+    )
+
+    return roomReservations
+  }
+
+  const handleReservationComplete = () => {
+    // Refresh reservations after a new one is created
+    const fetchReservations = async () => {
+      try {
+        const dates = getDateRange()
+        const dateStrings = dates.map((date) => format(date, "yyyy-MM-dd"))
+
+        const { data, error } = await supabase
+          .from("reservation")
+          .select(`
+            *,
+            users:user_id (
+              first_name,
+              middle_name,
+              last_name,
+              email
+            ),
+            room:room_id (
+              room_number
+            )
+          `)
+          .in("reservation_date", dateStrings)
+          .in("room_status", [0, 1])
+
+        if (error) throw error
+        setReservations(data || [])
+      } catch (error) {
+        console.error("Error fetching reservations:", error)
+      }
+    }
+
+    fetchReservations()
   }
 
   const TodayView = () => (
@@ -327,6 +444,35 @@ export default function RoomCalendar() {
                   </div>
                 )
               })}
+
+              {/* Reservation blocks overlay */}
+              {getReservationsForRoom(room.name, currentDate).map((reservation, index) => {
+                const style = getClassBlockStyle(reservation.start_time, reservation.end_time)
+                const colorClass = getReservationColor(reservation.room_status)
+
+                return (
+                  <div
+                    key={reservation.reservation_id}
+                    className={`absolute left-1 right-1 rounded-md border-2 p-2 ${colorClass} shadow-sm overflow-hidden`}
+                    style={{
+                      ...style,
+                      zIndex: 20 + index, // Higher z-index than classes
+                      left: index > 0 ? `${4 + index * 2}px` : "4px", // Offset overlapping reservations slightly
+                    }}
+                    title={`Reservation: ${reservation.users?.first_name} ${reservation.users?.last_name} (${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)})`}
+                  >
+                    <div className="font-semibold text-xs leading-tight mb-1">
+                      {reservation.room_status === 0 ? "Pending" : "Reserved"}
+                    </div>
+                    <div className="text-xs leading-tight mb-1">
+                      {reservation.users?.first_name} {reservation.users?.last_name}
+                    </div>
+                    <div className="text-xs leading-tight opacity-75">
+                      {reservation.start_time.slice(0, 5)} - {reservation.end_time.slice(0, 5)}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>
@@ -369,11 +515,17 @@ export default function RoomCalendar() {
                       (cls) => timeToMinutes(cls.time_start) < 12 * 60,
                     )
 
-                    if (morningClasses.length === 0) return null
+                    const morningReservations = getReservationsForRoom(room.name, date).filter(
+                      (res) => timeToMinutes(res.start_time) < 12 * 60,
+                    )
+
+                    if (morningClasses.length === 0 && morningReservations.length === 0) return null
 
                     return (
                       <div key={`${date.toISOString()}-${room.id}-morning`} className="border-b pb-1 last:border-b-0">
                         <div className="font-medium text-xs text-gray-700">{room.name}</div>
+
+                        {/* Classes */}
                         {morningClasses.map((cls) => (
                           <div
                             key={cls.scheduled_class_id}
@@ -383,6 +535,24 @@ export default function RoomCalendar() {
                             <div>{cls.course_code}</div>
                             <div className="text-gray-600">
                               {formatTimeDisplay(cls.time_start)} - {formatTimeDisplay(cls.time_end)}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Reservations */}
+                        {morningReservations.map((res) => (
+                          <div
+                            key={res.reservation_id}
+                            className={`border rounded p-1 mt-1 text-xs ${
+                              res.room_status === 1 ? "bg-blue-100 border-blue-300" : "bg-yellow-100 border-yellow-300"
+                            }`}
+                          >
+                            <div className="font-medium">{res.room_status === 1 ? "Reserved" : "Pending"}</div>
+                            <div>
+                              {res.users?.first_name} {res.users?.last_name}
+                            </div>
+                            <div className="text-gray-600">
+                              {formatTimeDisplay(res.start_time)} - {formatTimeDisplay(res.end_time)}
                             </div>
                           </div>
                         ))}
@@ -406,11 +576,17 @@ export default function RoomCalendar() {
                       (cls) => timeToMinutes(cls.time_start) >= 12 * 60 && timeToMinutes(cls.time_start) < 17 * 60,
                     )
 
-                    if (afternoonClasses.length === 0) return null
+                    const afternoonReservations = getReservationsForRoom(room.name, date).filter(
+                      (res) => timeToMinutes(res.start_time) >= 12 * 60 && timeToMinutes(res.start_time) < 17 * 60,
+                    )
+
+                    if (afternoonClasses.length === 0 && afternoonReservations.length === 0) return null
 
                     return (
                       <div key={`${date.toISOString()}-${room.id}-afternoon`} className="border-b pb-1 last:border-b-0">
                         <div className="font-medium text-xs text-gray-700">{room.name}</div>
+
+                        {/* Classes */}
                         {afternoonClasses.map((cls) => (
                           <div
                             key={cls.scheduled_class_id}
@@ -420,6 +596,24 @@ export default function RoomCalendar() {
                             <div>{cls.course_code}</div>
                             <div className="text-gray-600">
                               {formatTimeDisplay(cls.time_start)} - {formatTimeDisplay(cls.time_end)}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Reservations */}
+                        {afternoonReservations.map((res) => (
+                          <div
+                            key={res.reservation_id}
+                            className={`border rounded p-1 mt-1 text-xs ${
+                              res.room_status === 1 ? "bg-blue-100 border-blue-300" : "bg-yellow-100 border-yellow-300"
+                            }`}
+                          >
+                            <div className="font-medium">{res.room_status === 1 ? "Reserved" : "Pending"}</div>
+                            <div>
+                              {res.users?.first_name} {res.users?.last_name}
+                            </div>
+                            <div className="text-gray-600">
+                              {formatTimeDisplay(res.start_time)} - {formatTimeDisplay(res.end_time)}
                             </div>
                           </div>
                         ))}
@@ -443,11 +637,17 @@ export default function RoomCalendar() {
                       (cls) => timeToMinutes(cls.time_start) >= 17 * 60,
                     )
 
-                    if (eveningClasses.length === 0) return null
+                    const eveningReservations = getReservationsForRoom(room.name, date).filter(
+                      (res) => timeToMinutes(res.start_time) >= 17 * 60,
+                    )
+
+                    if (eveningClasses.length === 0 && eveningReservations.length === 0) return null
 
                     return (
                       <div key={`${date.toISOString()}-${room.id}-evening`} className="border-b pb-1 last:border-b-0">
                         <div className="font-medium text-xs text-gray-700">{room.name}</div>
+
+                        {/* Classes */}
                         {eveningClasses.map((cls) => (
                           <div
                             key={cls.scheduled_class_id}
@@ -457,6 +657,24 @@ export default function RoomCalendar() {
                             <div>{cls.course_code}</div>
                             <div className="text-gray-600">
                               {formatTimeDisplay(cls.time_start)} - {formatTimeDisplay(cls.time_end)}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Reservations */}
+                        {eveningReservations.map((res) => (
+                          <div
+                            key={res.reservation_id}
+                            className={`border rounded p-1 mt-1 text-xs ${
+                              res.room_status === 1 ? "bg-blue-100 border-blue-300" : "bg-yellow-100 border-yellow-300"
+                            }`}
+                          >
+                            <div className="font-medium">{res.room_status === 1 ? "Reserved" : "Pending"}</div>
+                            <div>
+                              {res.users?.first_name} {res.users?.last_name}
+                            </div>
+                            <div className="text-gray-600">
+                              {formatTimeDisplay(res.start_time)} - {formatTimeDisplay(res.end_time)}
                             </div>
                           </div>
                         ))}
@@ -500,15 +718,23 @@ export default function RoomCalendar() {
             return days.map((date) => {
               // Group classes by room
               const classesByRoom: Record<string, ScheduledClass[]> = {}
+              const reservationsByRoom: Record<string, Reservation[]> = {}
 
               rooms.forEach((room) => {
                 const roomClasses = getScheduledClassesForRoom(room.name, date)
+                const roomReservations = getReservationsForRoom(room.name, date)
+
                 if (roomClasses.length > 0) {
                   classesByRoom[room.name] = roomClasses
+                }
+
+                if (roomReservations.length > 0) {
+                  reservationsByRoom[room.name] = roomReservations
                 }
               })
 
               const hasClasses = Object.keys(classesByRoom).length > 0
+              const hasReservations = Object.keys(reservationsByRoom).length > 0
 
               return (
                 <div
@@ -521,23 +747,45 @@ export default function RoomCalendar() {
                     <span className={isSameDay(date, new Date()) ? "text-blue-700 font-bold" : ""}>
                       {format(date, "d")}
                     </span>
-                    {hasClasses && (
-                      <span className="bg-red-100 text-red-800 text-xs px-1 rounded-full">
-                        {Object.values(classesByRoom).flat().length}
-                      </span>
-                    )}
+                    <div className="flex space-x-1">
+                      {hasClasses && (
+                        <span className="bg-red-100 text-red-800 text-xs px-1 rounded-full">
+                          {Object.values(classesByRoom).flat().length}
+                        </span>
+                      )}
+                      {hasReservations && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-1 rounded-full">
+                          {Object.values(reservationsByRoom).flat().length}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Room summaries */}
                   <div className="space-y-1">
                     {Object.entries(classesByRoom).map(([roomName, classes]) => (
-                      <div key={`${date.toISOString()}-${roomName}`} className="text-xs">
+                      <div key={`${date.toISOString()}-${roomName}-classes`} className="text-xs">
                         <div className="font-medium bg-gray-100 px-1 rounded">{roomName}</div>
                         <div className="pl-1">
                           {classes.length === 1 ? (
                             <div className="text-xs truncate">{classes[0].section}</div>
                           ) : (
                             <div className="text-xs">{classes.length} classes</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {Object.entries(reservationsByRoom).map(([roomName, reservations]) => (
+                      <div key={`${date.toISOString()}-${roomName}-reservations`} className="text-xs">
+                        <div className="font-medium bg-blue-50 px-1 rounded">{roomName}</div>
+                        <div className="pl-1">
+                          {reservations.length === 1 ? (
+                            <div className="text-xs truncate">
+                              {reservations[0].users?.first_name} {reservations[0].users?.last_name}
+                            </div>
+                          ) : (
+                            <div className="text-xs">{reservations.length} reservations</div>
                           )}
                         </div>
                       </div>
@@ -557,11 +805,16 @@ export default function RoomCalendar() {
               // Count classes for this room in the current month
               const classCount = scheduledClasses.filter((cls) => cls.room_id === room.id).length
 
+              // Count reservations for this room in the current month
+              const reservationCount = reservations.filter((res) => res.room_id === room.id).length
+
               return (
                 <div key={room.id} className="flex items-center space-x-2 text-sm">
-                  <div className={`w-3 h-3 ${classCount > 0 ? "bg-red-400" : "bg-gray-300"} rounded`}></div>
+                  <div
+                    className={`w-3 h-3 ${classCount > 0 || reservationCount > 0 ? "bg-blue-400" : "bg-gray-300"} rounded`}
+                  ></div>
                   <span>{room.name}</span>
-                  <span className="text-xs text-gray-500">({classCount})</span>
+                  <span className="text-xs text-gray-500">({classCount + reservationCount})</span>
                 </div>
               )
             })}
@@ -581,6 +834,28 @@ export default function RoomCalendar() {
               <span>Room Calendar</span>
             </CardTitle>
             <p className="text-sm text-gray-600 mt-1">View and manage room reservations</p>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-1"
+              onClick={() => setFindRoomModalOpen(true)}
+            >
+              <Search className="w-4 h-4" />
+              <span>Find Room</span>
+            </Button>
+
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+              onClick={() => setReserveRoomModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              <span>Reserve Room</span>
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -636,6 +911,16 @@ export default function RoomCalendar() {
           </div>
         </div>
       </CardContent>
+
+      {/* Modals */}
+      <FindRoomModal open={findRoomModalOpen} onOpenChange={setFindRoomModalOpen} userRole={userRole} />
+
+      <ReserveRoomModal
+        open={reserveRoomModalOpen}
+        onOpenChange={setReserveRoomModalOpen}
+        userRole={userRole}
+        onReservationComplete={handleReservationComplete}
+      />
     </Card>
   )
 }
