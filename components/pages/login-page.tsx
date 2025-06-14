@@ -102,7 +102,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">Welcome back!</h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">Welcome !</h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to your account to continue
           </p>
@@ -174,7 +174,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h4 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials:</h4>
               <div className="text-xs text-gray-600 space-y-1">
                 <p>
@@ -188,6 +188,7 @@ export default function LoginPage() {
                 </p>
               </div>
             </div>
+          */}
           </CardContent>
         </Card>
       </div>

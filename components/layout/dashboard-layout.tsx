@@ -185,11 +185,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
       { name: "Find Room", href: "/dashboard/faculty?tab=find", icon: Search },
     ],
     admin: [
-      { name: "Dashboard", href: "/dashboard/admin", icon: BarChart3 },
-      { name: "Reservation Requests", href: "/dashboard/admin?tab=requests", icon: Clock },
-      { name: "Inventory", href: "/dashboard/admin?tab=inventory", icon: Package },
-      { name: "Rooms", href: "/dashboard/admin?tab=rooms", icon: Home },
-      { name: "Users", href: "/dashboard/admin?tab=users", icon: Users },
+    
     ],
   }[userRole]
 
@@ -292,7 +288,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
             </nav>
 
             {/* Right side actions */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-">
               <Button variant="ghost" size="icon" className="text-gray-500">
                 <Bell className="h-5 w-5" />
               </Button>

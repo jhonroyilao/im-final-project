@@ -21,7 +21,7 @@ import {
   CalendarDays,
 } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
-import RoomCalendar from "../calendar/room-calendar"
+import RoomCalendar from "@/components/calendar/room-calendar"
 import ReservationSidebar from "@/components/reservation/reservation-sidebar"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
       const { data: pendingRequests, error: pendingError } = await supabase
         .from("reservation")
         .select("*")
-        .eq("room_status", 0)
+        .eq("room_status", 3) // Use 3 for pending
 
       if (pendingError) throw pendingError
 
@@ -705,7 +705,7 @@ export default function AdminDashboard() {
 
       const matchesStatus =
         reservationFilters.status === "all" ||
-        (reservationFilters.status === "pending" && reservation.room_status === 0) ||
+        (reservationFilters.status === "pending" && reservation.room_status === 3) ||
         (reservationFilters.status === "approved" && reservation.room_status === 1) ||
         (reservationFilters.status === "rejected" && reservation.room_status === 2)
 
@@ -800,7 +800,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-700">{stats.activeReservations}</div>
-            <p className="text-blue-600 text-sm">Currently approved reservations</p>
+            <p className="text-primary text-sm">Currently approved reservations</p>
           </CardContent>
         </Card>
 
@@ -1164,18 +1164,18 @@ export default function AdminDashboard() {
                           >
                             View
                           </Button>
-                          {reservation.room_status === 0 && (
+                          {reservation.room_status === 3 && (
                             <>
                               <Button
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                                className="bg-green-500 hover:bg-green-600 text-white"
                                 onClick={() => handleReservationStatus(reservation.reservation_id, 1, 1)}
                               >
                                 Approve
                               </Button>
                               <Button
                                 size="sm"
-                                className="bg-red-600 hover:bg-red-700 text-white"
+                                className="bg-red-500 hover:bg-red-600 text-white"
                                 onClick={() => handleReservationStatus(reservation.reservation_id, 2, 1)}
                               >
                                 Reject
@@ -1403,7 +1403,7 @@ export default function AdminDashboard() {
               Export
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary  hover:bg-blue-700 text-white"
               size="sm"
               onClick={() => setIsAddItemOpen(true)}
             >
@@ -1841,7 +1841,7 @@ export default function AdminDashboard() {
               Export
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-blue-700 text-white"
               size="sm"
               onClick={() => setIsAddRoomOpen(true)}
             >
@@ -2190,9 +2190,8 @@ export default function AdminDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Departments</SelectItem>
-                        <SelectItem value="1">CCIS</SelectItem>
-                        <SelectItem value="2">CET</SelectItem>
-                        <SelectItem value="3">CAS</SelectItem>
+                        <SelectItem value="1">CS</SelectItem>
+                        <SelectItem value="2">IT</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2234,7 +2233,7 @@ export default function AdminDashboard() {
                     name: `${user.first_name} ${user.last_name}`,
                     email: user.email,
                     role: user.user_role === 1 ? "Admin" : user.user_role === 2 ? "Faculty" : "Student",
-                    department: user.department === 1 ? "CCIS" : user.department === 2 ? "CET" : "CAS",
+                    department: user.department === 1 ? "CS" : user.department === 2 ? "IT" : "Unknown",
                     status: user.is_active ? "Active" : "Inactive",
                     contact: user.contact_number,
                     last_login: user.last_login,
@@ -2247,7 +2246,7 @@ export default function AdminDashboard() {
               Export
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-blue-700 text-white"
               size="sm"
               onClick={() => setIsAddUserOpen(true)}
             >
@@ -2368,12 +2367,10 @@ export default function AdminDashboard() {
                       <TableCell>
                         <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
                           {user.department === 1
-                            ? "CCIS"
+                            ? "CS"
                             : user.department === 2
-                              ? "CET"
-                              : user.department === 3
-                                ? "CAS"
-                                : "Unknown"}
+                              ? "IT"
+                              : "Unknown"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -2508,7 +2505,7 @@ export default function AdminDashboard() {
                 <Label htmlFor="user_role">Role *</Label>
                 <Select
                   value={newUser.user_role}
-                  onValueChange={(value) => setNewUser({ ...newUser, user_role: value })}
+                  onChange={(e) => setNewUser({ ...newUser, user_role: e.target.value })}
                 >
                   <SelectTrigger className="border-gray-300">
                     <SelectValue placeholder="Select role" />
@@ -2524,15 +2521,14 @@ export default function AdminDashboard() {
                 <Label htmlFor="department">Department *</Label>
                 <Select
                   value={newUser.department}
-                  onValueChange={(value) => setNewUser({ ...newUser, department: value })}
+                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
                 >
                   <SelectTrigger className="border-gray-300">
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">CCIS</SelectItem>
-                    <SelectItem value="2">CET</SelectItem>
-                    <SelectItem value="3">CAS</SelectItem>
+                    <SelectItem value="1">CS</SelectItem>
+                    <SelectItem value="2">IT</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2607,7 +2603,7 @@ export default function AdminDashboard() {
                   <Label htmlFor="edit_user_role">Role *</Label>
                   <Select
                     value={editingUser.user_role.toString()}
-                    onValueChange={(value) => setEditingUser({ ...editingUser, user_role: Number.parseInt(value) })}
+                    onChange={(e) => setEditingUser({ ...editingUser, user_role: Number.parseInt(e.target.value) })}
                   >
                     <SelectTrigger className="border-gray-300">
                       <SelectValue />
@@ -2623,15 +2619,14 @@ export default function AdminDashboard() {
                   <Label htmlFor="edit_department">Department *</Label>
                   <Select
                     value={editingUser.department.toString()}
-                    onValueChange={(value) => setEditingUser({ ...editingUser, department: Number.parseInt(value) })}
+                    onChange={(e) => setEditingUser({ ...editingUser, department: Number.parseInt(e.target.value) })}
                   >
                     <SelectTrigger className="border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">CCIS</SelectItem>
-                      <SelectItem value="2">CET</SelectItem>
-                      <SelectItem value="3">CAS</SelectItem>
+                      <SelectItem value="1">CS</SelectItem>
+                      <SelectItem value="2">IT</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2674,7 +2669,7 @@ export default function AdminDashboard() {
     <DashboardLayout userRole="admin">
       <div className="flex">
         {/* Main Content */}
-        <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen outline outline-1 outline-gray-200">
+        <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen">
           <div className="mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600">Manage reservations, requests, and inventory</p>
@@ -2741,7 +2736,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Sidebar */}
-        <div className="hidden lg:block border-l bg-white p-5 w-90">
+        <div className="hidden lg:block border-l bg-white p-4 w-80">
           <ReservationSidebar userRole="admin" />
         </div>
       </div>
