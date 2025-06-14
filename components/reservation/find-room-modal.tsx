@@ -161,7 +161,7 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
         .from("reservation")
         .select("*")
         .eq("reservation_date", formattedDate)
-        .in("room_status", [0, 1]) // Pending or approved reservations
+        .in("room_status", [3, 1]) // Pending (3) or approved (1) reservations
 
       if (reservationsError) throw reservationsError
 

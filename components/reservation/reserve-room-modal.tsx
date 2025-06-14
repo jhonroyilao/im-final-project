@@ -57,6 +57,14 @@ interface Equipment {
   }
 }
 
+// Room status constants - updated to match your database
+const ROOM_STATUS = {
+  APPROVED: 1, // "Approved"
+  REJECTED: 2, // "Rejected"
+  PENDING: 3, // "Pending"
+  CANCELLED: 4, // "Cancelled"
+}
+
 export default function ReserveRoomModal({
   open,
   onOpenChange,
@@ -82,8 +90,9 @@ export default function ReserveRoomModal({
   const [rooms, setRooms] = useState<Room[]>([])
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [selectedRoomEquipment, setSelectedRoomEquipment] = useState<string[]>([])
+  const [roomStatuses, setRoomStatuses] = useState<{ id: number; name: string }[]>([])
 
-  // Fetch rooms and equipment from database
+  // Fetch rooms, equipment, and room statuses from database
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -126,6 +135,24 @@ export default function ReserveRoomModal({
           }) || []
 
         setEquipment(equipmentWithCategories)
+
+        // Fetch room statuses to get valid status IDs
+        const { data: statuses, error: statusesError } = await supabase
+          .from("reservationstatus")
+          .select("*")
+          .order("reservation_status_id")
+
+        if (statusesError) {
+          console.error("Error fetching room statuses:", statusesError)
+        } else {
+          setRoomStatuses(
+            statuses?.map((status) => ({
+              id: status.reservation_status_id,
+              name: status.reservation_status,
+            })) || [],
+          )
+          console.log("Available room statuses:", statuses)
+        }
 
         // If a room is preselected, fetch its equipment
         if (preselectedRoom) {
@@ -229,6 +256,20 @@ export default function ReserveRoomModal({
       return
     }
 
+    // Validate time range
+    if (formData.timeStart >= formData.timeEnd) {
+      toast.error("End time must be after start time")
+      return
+    }
+
+    // Validate capacity
+    const roomCapacity = rooms.find((room) => room.room_id.toString() === selectedRoom)?.room_capacity || 0
+    const requestedCapacity = Number.parseInt(formData.numberOfStudents)
+    if (requestedCapacity > roomCapacity) {
+      toast.error(`This room can only accommodate ${roomCapacity} students`)
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -245,15 +286,33 @@ export default function ReserveRoomModal({
         .select("*")
         .eq("reservation_date", formattedDate)
         .eq("room_id", selectedRoom)
-        .in("room_status", [0, 1]) // Pending or approved
+        .in("room_status", [ROOM_STATUS.PENDING, ROOM_STATUS.APPROVED]) // Pending (3) or approved (1)
         .or(`start_time.lte.${formData.timeEnd},end_time.gte.${formData.timeStart}`)
 
-      if (conflictError) throw conflictError
+      if (conflictError) {
+        console.error("Error checking for conflicts:", conflictError)
+        throw new Error(`Conflict check failed: ${conflictError.message}`)
+      }
 
       if (conflicts && conflicts.length > 0) {
         toast.error("This room is already reserved for the selected time")
         return
       }
+
+      // Use the correct pending status ID (3)
+      const pendingStatusId = ROOM_STATUS.PENDING
+
+      console.log("Submitting reservation with data:", {
+        user_id: userId,
+        room_id: Number.parseInt(selectedRoom),
+        reservation_date: formattedDate,
+        start_time: formData.timeStart,
+        end_time: formData.timeEnd,
+        room_status: pendingStatusId,
+        purpose: formData.reason,
+        number_of_students: Number.parseInt(formData.numberOfStudents),
+        equipment_needed: requestItems && Object.keys(selectedItems).length > 0,
+      })
 
       // Create reservation
       const { data: reservation, error: reservationError } = await supabase
@@ -265,18 +324,26 @@ export default function ReserveRoomModal({
             reservation_date: formattedDate,
             start_time: formData.timeStart,
             end_time: formData.timeEnd,
-            room_status: 0, // Pending
+            room_status: pendingStatusId, // Use the fetched pending status ID
             purpose: formData.reason,
-            num_students: Number.parseInt(formData.numberOfStudents),
+            number_of_students: Number.parseInt(formData.numberOfStudents),
+            equipment_needed: requestItems && Object.keys(selectedItems).length > 0,
           },
         ])
         .select()
 
-      if (reservationError) throw reservationError
+      if (reservationError) {
+        console.error("Reservation insert error:", reservationError)
+        throw new Error(`Reservation failed: ${reservationError.message}`)
+      }
+
+      if (!reservation || reservation.length === 0) {
+        throw new Error("No reservation data returned after insert")
+      }
 
       // If requesting additional items, create reservation items
       if (requestItems && Object.keys(selectedItems).length > 0) {
-        const reservationId = reservation?.[0]?.reservation_id
+        const reservationId = reservation[0].reservation_id
 
         if (reservationId) {
           const reservationItems = Object.entries(selectedItems).map(([itemId, quantity]) => ({
@@ -285,9 +352,15 @@ export default function ReserveRoomModal({
             quantity: quantity,
           }))
 
+          console.log("Adding reservation items:", reservationItems)
+
           const { error: itemsError } = await supabase.from("reservationitem").insert(reservationItems)
 
-          if (itemsError) throw itemsError
+          if (itemsError) {
+            console.error("Reservation items insert error:", itemsError)
+            // Don't throw here, as the main reservation was successful
+            toast.warning("Reservation created, but there was an issue with the requested items")
+          }
         }
       }
 
@@ -311,7 +384,15 @@ export default function ReserveRoomModal({
       }
     } catch (error) {
       console.error("Error submitting reservation:", error)
-      toast.error("Failed to submit reservation")
+      let errorMessage = "Failed to submit reservation"
+
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`
+      } else if (typeof error === "object" && error !== null) {
+        errorMessage += `: ${JSON.stringify(error)}`
+      }
+
+      toast.error(errorMessage)
     } finally {
       setSubmitting(false)
     }

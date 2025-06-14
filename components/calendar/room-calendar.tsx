@@ -147,6 +147,14 @@ const formatTimeDisplay = (timeStr: string): string => {
   return `${displayHours}:${minutes} ${ampm}`
 }
 
+const getReservationColor = (status: number) => {
+  if (status === 1) return "bg-blue-200 border-blue-400 text-blue-800" // Approved
+  if (status === 2) return "bg-red-200 border-red-400 text-red-800" // Rejected
+  if (status === 3) return "bg-yellow-200 border-yellow-400 text-yellow-800" // Pending
+  if (status === 4) return "bg-gray-200 border-gray-400 text-gray-800" // Cancelled
+  return "bg-gray-200 border-gray-400 text-gray-800" // Default
+}
+
 export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"today" | "week" | "month">("today")
@@ -195,12 +203,6 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
 
   const getClassColor = (section: string) => {
     return "bg-red-200 border-red-400 text-red-800"
-  }
-
-  const getReservationColor = (status: number) => {
-    if (status === 1) return "bg-blue-200 border-blue-400 text-blue-800" // Approved
-    if (status === 2) return "bg-red-200 border-red-400 text-red-800" // Rejected
-    return "bg-yellow-200 border-yellow-400 text-yellow-800" // Pending
   }
 
   useEffect(() => {
@@ -306,7 +308,7 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
             )
           `)
           .in("reservation_date", dateStrings)
-          .in("room_status", [0, 1]) // Pending or approved
+          .in("room_status", [3, 1]) // Pending (3) or approved (1)
 
         if (error) throw error
         console.log("Fetched reservations:", data)
@@ -369,7 +371,7 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
             )
           `)
           .in("reservation_date", dateStrings)
-          .in("room_status", [0, 1])
+          .in("room_status", [3, 1])
 
         if (error) throw error
         setReservations(data || [])
@@ -462,7 +464,7 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
                     title={`Reservation: ${reservation.users?.first_name} ${reservation.users?.last_name} (${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)})`}
                   >
                     <div className="font-semibold text-xs leading-tight mb-1">
-                      {reservation.room_status === 0 ? "Pending" : "Reserved"}
+                      {reservation.room_status === 3 ? "Pending" : "Reserved"}
                     </div>
                     <div className="text-xs leading-tight mb-1">
                       {reservation.users?.first_name} {reservation.users?.last_name}
@@ -849,7 +851,7 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
             </Button>
 
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-blue-700 text-white"
               size="sm"
               onClick={() => setReserveRoomModalOpen(true)}
             >
