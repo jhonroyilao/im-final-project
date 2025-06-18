@@ -273,9 +273,14 @@ export default function ReserveRoomModal({
     setSubmitting(true)
 
     try {
-      // Get current user ID (in a real app, this would come from auth)
-      // For now, we'll use a placeholder user ID
-      const userId = 1 // Replace with actual user ID from auth
+      // Get current user ID from localStorage
+      const userIdString = (typeof window !== 'undefined') ? localStorage.getItem('userId') : null;
+      const userId = userIdString ? Number(userIdString) : null;
+      if (!userId) {
+        toast.error('User not logged in. Please log in again.');
+        setSubmitting(false);
+        return;
+      }
 
       // Format date for database
       const formattedDate = format(date, "yyyy-MM-dd")
