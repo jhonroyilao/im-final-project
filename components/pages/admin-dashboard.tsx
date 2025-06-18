@@ -337,11 +337,11 @@ export default function AdminDashboard() {
 
       if (pendingError) throw pendingError
 
-      // Fetch low stock items
+      // Fetch low stock items (less than 10)
       const { data: lowStock, error: lowStockError } = await supabase
         .from("inventoryitem")
         .select("*")
-        .lt("quantity", 5)
+        .lt("quantity", 10)
 
       if (lowStockError) throw lowStockError
 
@@ -2867,7 +2867,7 @@ export default function AdminDashboard() {
     <DashboardLayout userRole="admin">
       <div className="flex">
         {/* Main Content */}
-        <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen outline outline-gray-200 rounded-md">
+        <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen outline outline-gray-200 outline-2 rounded-md">
           <div className="mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600">Manage reservations, requests, and inventory</p>

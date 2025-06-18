@@ -15,7 +15,7 @@ export default function FacultyDashboard() {
   const [activeTab, setActiveTab] = useState("calendar")
   const [showReserveModal, setShowReserveModal] = useState(false)
   const [showFindModal, setShowFindModal] = useState(false)
-  // const roleColor = "green-600"
+ 
   
 
   
@@ -30,48 +30,33 @@ export default function FacultyDashboard() {
           </div>
 
           <Tabs value={activeTab} className="space-y-6" onValueChange={setActiveTab}>
-            <div className="flex justify-between items-center border-b-2 border-green-600 pb-2">
+            <div className="flex justify-between items-center border-b-2 border-primary pb-2">
               <TabsList className="bg-transparent">
                 <TabsTrigger 
                   value="calendar" 
-                  className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
                 >
                   <Calendar className="w-4 h-4" />
                   <span className="hidden sm:inline">Calendar</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="reservations" 
-                  className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
                 >
                   <Clock className="w-4 h-4" />
                   <span className="hidden sm:inline">My Reservations</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="find" 
-                  className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
                 >
                   <Search className="w-4 h-4" />
                   <span className="hidden sm:inline">Find Room</span>
                 </TabsTrigger>
               </TabsList>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hidden md:flex border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-                  onClick={() => setShowFindModal(true)}
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Find Room
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => setShowReserveModal(true)}
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Reserve Room
-                </Button>
+                
+                
               </div>
             </div>
 
@@ -92,7 +77,7 @@ export default function FacultyDashboard() {
                     <p className="text-gray-500 mb-4">
                       Start by reserving a room for your classes or research activities.
                     </p>
-                    <Button onClick={() => setShowReserveModal(true)} className="bg-green-600 hover:bg-green-700 text-white">
+                    <Button onClick={() => setShowReserveModal(true)} className="bg-primary hover:bg-primary/90 text-white">
                       Reserve a Room
                     </Button>
                   </div>
@@ -113,7 +98,7 @@ export default function FacultyDashboard() {
                     <p className="text-gray-500 mb-4">
                       Search for rooms based on date, time, capacity, and equipment needs.
                     </p>
-                    <Button onClick={() => setShowFindModal(true)} className="bg-green-600 hover:bg-green-700 text-white">
+                    <Button onClick={() => setShowFindModal(true)} className="bg-primary hover:bg-primary/90 text-white">
                       <Search className="w-4 h-4 mr-2" />
                       Find Room
                     </Button>
@@ -133,7 +118,7 @@ export default function FacultyDashboard() {
       {/* Modals */}
       <ReserveRoomModal open={showReserveModal} onOpenChange={setShowReserveModal} userRole="faculty" />
 
-      <FindRoomModal open={showFindModal} onOpenChange={setShowFindModal} />
+      <FindRoomModal open={showFindModal} onOpenChange={setShowFindModal} userRole="faculty" />
     </DashboardLayout>
   )
 }
