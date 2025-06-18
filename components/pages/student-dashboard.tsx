@@ -259,23 +259,7 @@ export default function StudentDashboard() {
                 </TabsTrigger>
               </TabsList>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hidden md:flex border-primary text-primary hover:bg-primary hover:text-white"
-                  onClick={() => setShowFindModal(true)}
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Find Room
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={() => setShowReserveModal(true)}
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Reserve Room
-                </Button>
+                
               </div>
             </div>
 

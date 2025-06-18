@@ -51,7 +51,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
     name: "Loading...",
     role: userRole.charAt(0).toUpperCase() + userRole.slice(1),
     id: "Loading...",
-    color: userRole === "faculty" ? "bg-green-600" : "bg-ccis-blue"
+    color: userRole === "faculty" ? "bg-primary" : "bg-ccis-blue"
   })
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
             name: `${userData.first_name} ${userData.last_name}`,
             role: "Faculty",
             id: facultyData.faculty_number,
-            color: "bg-green-600"
+            color: "bg-primary"
           })
         } else if (userRole === 'admin') {
           setUserInfo({
