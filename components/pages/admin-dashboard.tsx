@@ -19,6 +19,7 @@ import {
   X,
   FileDown,
   CalendarDays,
+  FileText,
 } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import RoomCalendar from "@/components/calendar/room-calendar"
@@ -72,6 +73,10 @@ interface User {
   department_info?: {
     department_name: string
   }
+  student_number?: string
+  faculty_number?: string
+  year_level?: string
+  section?: string
 }
 
 interface Room {
@@ -108,10 +113,14 @@ interface Reservation {
   start_time: string
   end_time: string
   room_status: number
+  priority_level: number
+  number_of_students: number
+  purpose?: string
+  equipment_needed: boolean
+  file_url?: string
   approved_by: number | null
   approved_at: string | null
   created_at: string
-  purpose?: string
   users?: {
     first_name: string
     middle_name: string
@@ -121,6 +130,15 @@ interface Reservation {
   room?: {
     room_number: string
   }
+  requestedequipment?: {
+    request_equipment_id: number
+    item_id: number
+    quantity: number
+    status: string
+    inventoryitem?: {
+      item_name: string
+    }
+  }[]
 }
 
 type SortField = string
@@ -189,12 +207,14 @@ export default function AdminDashboard() {
   const [isEditRoomOpen, setIsEditRoomOpen] = useState(false)
   const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [isViewReservationOpen, setIsViewReservationOpen] = useState(false)
+  const [isViewUserOpen, setIsViewUserOpen] = useState(false)
 
   // Edit states
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [viewingReservation, setViewingReservation] = useState<Reservation | null>(null)
+  const [viewingUser, setViewingUser] = useState<User | null>(null)
 
   // Form states
   const [newItem, setNewItem] = useState({
@@ -352,6 +372,15 @@ export default function AdminDashboard() {
           ),
           room:room_id (
             room_number
+          ),
+          requestedequipment (
+            request_equipment_id,
+            item_id,
+            quantity,
+            status,
+            inventoryitem (
+              item_name
+            )
           )
         `)
         .order("created_at", { ascending: false })
@@ -921,13 +950,6 @@ export default function AdminDashboard() {
   const CalendarView = () => (
     <div className="space-y-6">
       <Card className="border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-gray-800 flex items-center">
-            <CalendarDays className="w-5 h-5 mr-2" />
-            Room Calendar
-          </CardTitle>
-          <CardDescription>View and manage room schedules and reservations</CardDescription>
-        </CardHeader>
         <CardContent className="p-0">
           <RoomCalendar />
         </CardContent>
@@ -1164,24 +1186,6 @@ export default function AdminDashboard() {
                           >
                             View
                           </Button>
-                          {reservation.room_status === 3 && (
-                            <>
-                              <Button
-                                size="sm"
-                                className="bg-green-500 hover:bg-green-600 text-white"
-                                onClick={() => handleReservationStatus(reservation.reservation_id, 1, 1)}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-red-500 hover:bg-red-600 text-white"
-                                onClick={() => handleReservationStatus(reservation.reservation_id, 2, 1)}
-                              >
-                                Reject
-                              </Button>
-                            </>
-                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -1228,13 +1232,14 @@ export default function AdminDashboard() {
 
         {/* View Reservation Dialog */}
         <Dialog open={isViewReservationOpen} onOpenChange={setIsViewReservationOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Reservation Details</DialogTitle>
-              <DialogDescription>View reservation information</DialogDescription>
+              <DialogTitle className="text-primary">Reservation Details</DialogTitle>
+              <DialogDescription>View complete reservation information</DialogDescription>
             </DialogHeader>
             {viewingReservation && (
-              <div className="space-y-4">
+              <div className="space-y-6 overflow-y-auto flex-1 pr-2">
+                {/* Basic Information */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-xs text-gray-500">Request ID</Label>
@@ -1251,8 +1256,8 @@ export default function AdminDashboard() {
                     </Badge>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500">User</Label>
-                    <p className="text-sm">{`${viewingReservation.users?.first_name} ${viewingReservation.users?.last_name}`}</p>
+                    <Label className="text-xs text-gray-500">Reserved By</Label>
+                    <p className="text-sm">{`${viewingReservation.users?.first_name} ${viewingReservation.users?.middle_name ? viewingReservation.users.middle_name + ' ' : ''}${viewingReservation.users?.last_name}`}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-gray-500">Email</Label>
@@ -1271,14 +1276,108 @@ export default function AdminDashboard() {
                     <p className="text-sm">{`${viewingReservation.start_time} - ${viewingReservation.end_time}`}</p>
                   </div>
                   <div>
+                    <Label className="text-xs text-gray-500">Number of Students</Label>
+                    <p className="text-sm">{viewingReservation.number_of_students || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Priority Level</Label>
+                    <p className="text-sm">{viewingReservation.priority_level || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Equipment Needed</Label>
+                    <p className="text-sm">{viewingReservation.equipment_needed ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
                     <Label className="text-xs text-gray-500">Created</Label>
                     <p className="text-sm">{new Date(viewingReservation.created_at).toLocaleString()}</p>
                   </div>
                 </div>
+
+                {/* Purpose */}
                 {viewingReservation.purpose && (
                   <div>
                     <Label className="text-xs text-gray-500">Purpose</Label>
-                    <p className="text-sm mt-1 p-2 bg-gray-50 rounded">{viewingReservation.purpose}</p>
+                    <p className="text-sm mt-1 p-3 bg-gray-50 rounded border">{viewingReservation.purpose}</p>
+                  </div>
+                )}
+
+                {/* File Attachment */}
+                <div>
+                  <Label className="text-xs text-gray-500">File Attachment</Label>
+                  {viewingReservation.file_url ? (
+                    <div className="mt-1 p-3 bg-blue-50 rounded border">
+                      <a 
+                        href={viewingReservation.file_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline flex items-center gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        View Attachment
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-sm mt-1 p-3 bg-gray-50 rounded border text-gray-500">No attachment</p>
+                  )}
+                </div>
+
+                {/* Requested Equipment */}
+                {viewingReservation.equipment_needed && viewingReservation.requestedequipment && viewingReservation.requestedequipment.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Requested Equipment</Label>
+                    <div className="mt-2 space-y-2">
+                      {viewingReservation.requestedequipment.map((equipment) => (
+                        <div key={equipment.request_equipment_id} className="p-3 bg-gray-50 rounded border">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">{equipment.inventoryitem?.item_name || 'Unknown Item'}</span>
+                            <span className="text-sm text-gray-600">Quantity: {equipment.quantity}</span>
+                          </div>
+                          <div className="mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {equipment.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Approval Information */}
+                {viewingReservation.approved_by && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-gray-500">Approved By</Label>
+                      <p className="text-sm">{viewingReservation.approved_by}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Approved At</Label>
+                      <p className="text-sm">{viewingReservation.approved_at ? new Date(viewingReservation.approved_at).toLocaleString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons - Only show for pending reservations */}
+                {viewingReservation.room_status === 3 && (
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      className="bg-primary hover:bg-blue-900 text-white flex-1"
+                      onClick={() => {
+                        handleReservationStatus(viewingReservation.reservation_id, 1, 1)
+                        setIsViewReservationOpen(false)
+                      }}
+                    >
+                      Approve Reservation
+                    </Button>
+                    <Button
+                      className="bg-red-500 hover:bg-red-600 text-white flex-1"
+                      onClick={() => {
+                        handleReservationStatus(viewingReservation.reservation_id, 2, 1)
+                        setIsViewReservationOpen(false)
+                      }}
+                    >
+                      Reject Reservation
+                    </Button>
                   </div>
                 )}
               </div>
@@ -2143,6 +2242,28 @@ export default function AdminDashboard() {
   const UsersManagement = () => {
     const filteredUsers = getFilteredUsers()
 
+    // Fetch and show user details with student/faculty number
+    const handleViewUser = async (user: User) => {
+      let extraData: Partial<User> = {};
+      if (user.user_role === 3) { // Student
+        const { data } = await supabase
+          .from('student')
+          .select('student_number')
+          .eq('user_id', user.user_id)
+          .single();
+        extraData.student_number = data?.student_number || '';
+      } else if (user.user_role === 2) { // Faculty
+        const { data } = await supabase
+          .from('faculty')
+          .select('faculty_number')
+          .eq('user_id', user.user_id)
+          .single();
+        extraData.faculty_number = data?.faculty_number || '';
+      }
+      setViewingUser({ ...user, ...extraData });
+      setIsViewUserOpen(true);
+    };
+
     return (
       <Card className="border-gray-200">
         <CardHeader className="flex flex-row items-center justify-between">
@@ -2289,13 +2410,6 @@ export default function AdminDashboard() {
                       User
                     </SortableTableHead>
                     <SortableTableHead
-                      field="email"
-                      currentSort={userSort}
-                      onSort={(field) => handleSort(field, userSort, setUserSort)}
-                    >
-                      Email
-                    </SortableTableHead>
-                    <SortableTableHead
                       field="user_role"
                       currentSort={userSort}
                       onSort={(field) => handleSort(field, userSort, setUserSort)}
@@ -2316,13 +2430,6 @@ export default function AdminDashboard() {
                     >
                       Status
                     </SortableTableHead>
-                    <SortableTableHead
-                      field="last_login"
-                      currentSort={userSort}
-                      onSort={(field) => handleSort(field, userSort, setUserSort)}
-                    >
-                      Last Login
-                    </SortableTableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -2339,11 +2446,9 @@ export default function AdminDashboard() {
                           </Avatar>
                           <div>
                             <div className="font-medium">{`${user.first_name} ${user.last_name}`}</div>
-                            <div className="text-sm text-gray-500">{user.contact_number}</div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -2378,11 +2483,16 @@ export default function AdminDashboard() {
                           {user.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {user.last_login ? new Date(user.last_login).toLocaleString() : "Never"}
-                      </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-gray-300"
+                            onClick={() => handleViewUser(user)}
+                          >
+                            View
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -2393,9 +2503,6 @@ export default function AdminDashboard() {
                             }}
                           >
                             <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-gray-300">
-                            Permissions
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -2650,6 +2757,97 @@ export default function AdminDashboard() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* View User Dialog */}
+        <Dialog open={isViewUserOpen} onOpenChange={setIsViewUserOpen}>
+          <DialogContent className="max-w-2xl w-full h-[500px] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+              <DialogDescription>View complete user information</DialogDescription>
+            </DialogHeader>
+            {viewingUser && (
+              <div className="space-y-6 overflow-y-auto flex-1 pr-2">
+                {/* User Avatar and Name */}
+                <div className="flex items-center space-x-4 pb-4 border-b">
+                  <Avatar className="border-2 border-gray-200 h-16 w-16">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-lg">
+                      {viewingUser.first_name?.[0]}
+                      {viewingUser.last_name?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold">{`${viewingUser.first_name} ${viewingUser.middle_name ? viewingUser.middle_name + ' ' : ''}${viewingUser.last_name}`}</h3>
+                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-600">
+                      <span>User ID: <span className="font-semibold text-gray-900">{viewingUser.user_id}</span></span>
+                      {viewingUser.user_role === 3 && (
+                        <span>Student No: <span className="font-semibold text-blue-700">{viewingUser.student_number || 'N/A'}</span></span>
+                      )}
+                      {viewingUser.user_role === 2 && (
+                        <span>Faculty No: <span className="font-semibold text-green-700">{viewingUser.faculty_number || 'N/A'}</span></span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Info Grid - Dynamic by Role */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-500">Role</Label>
+                    <p className="text-sm font-medium mt-1">{viewingUser.user_role === 1 ? 'Admin' : viewingUser.user_role === 2 ? 'Faculty' : viewingUser.user_role === 3 ? 'Student' : 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Department</Label>
+                    <p className="text-sm font-medium mt-1">{viewingUser.department === 1 ? 'CS' : viewingUser.department === 2 ? 'IT' : 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Status</Label>
+                    <div className={`text-sm font-semibold mt-1 ${viewingUser.is_active ? 'text-green-600' : 'text-gray-500'}`}>{viewingUser.is_active ? 'Active' : 'Inactive'}</div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Last Login</Label>
+                    <p className="text-sm font-medium mt-1">{viewingUser.last_login ? new Date(viewingUser.last_login).toLocaleString() : 'Never logged in'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Email</Label>
+                    <p className="text-sm font-medium mt-1 break-all">{viewingUser.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Contact Number</Label>
+                    <p className="text-sm font-medium mt-1">{viewingUser.contact_number || 'Not provided'}</p>
+                  </div>
+                  {/* Student-specific fields */}
+                  {viewingUser.user_role === 3 && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-gray-500">Year Level</Label>
+                        <p className="text-sm font-medium mt-1">{viewingUser.year_level || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Section</Label>
+                        <p className="text-sm font-medium mt-1">{viewingUser.section || 'N/A'}</p>
+                      </div>
+                    </>
+                  )}
+                  {/* Faculty-specific fields (add more if needed) */}
+                  {/* Admins: no extra fields */}
+                </div>
+
+                {/* Permission Management */}
+                {(viewingUser.user_role === 1 || viewingUser.user_role === 2) && (
+                  <div className="pt-2 border-t mt-2">
+                    <h4 className="font-semibold text-gray-700 text-sm mb-2">Permission Management</h4>
+                    <Button
+                      className="bg-primary hover:bg-blue-900 text-white w-full"
+                      onClick={() => {/* TODO: Implement permission management logic */}}
+                    >
+                      Manage Permissions
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </Card>
     )
   }
@@ -2669,7 +2867,7 @@ export default function AdminDashboard() {
     <DashboardLayout userRole="admin">
       <div className="flex">
         {/* Main Content */}
-        <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen">
+        <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen outline outline-gray-200 rounded-md">
           <div className="mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600">Manage reservations, requests, and inventory</p>
@@ -2735,11 +2933,9 @@ export default function AdminDashboard() {
           </Tabs>
         </div>
 
-        {/* Sidebar */}
-        <div className="hidden lg:block border-l bg-white p-4 w-80">
-          <ReservationSidebar userRole="admin" />
-        </div>
+        {/* Sidebar removed for admin */}
       </div>
     </DashboardLayout>
   )
 }
+
