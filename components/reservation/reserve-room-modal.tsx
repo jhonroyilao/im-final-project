@@ -353,13 +353,14 @@ export default function ReserveRoomModal({
         if (reservationId) {
           const reservationItems = Object.entries(selectedItems).map(([itemId, quantity]) => ({
             reservation_id: reservationId,
-            item_id: Number.parseInt(itemId),
+            item_id: Number(itemId),
             quantity: quantity,
+            // status: 'pending' // optional, if you want to set a status
           }))
 
           console.log("Adding reservation items:", reservationItems)
 
-          const { error: itemsError } = await supabase.from("reservationitem").insert(reservationItems)
+          const { error: itemsError } = await supabase.from("requestedequipment").insert(reservationItems)
 
           if (itemsError) {
             console.error("Reservation items insert error:", itemsError)
