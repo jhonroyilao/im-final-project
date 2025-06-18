@@ -53,7 +53,7 @@ export default function LandingPage() {
       description: "Managing server logic and structuring efficient data storage systems.",
     },
     {
-      name: "Luis Miguel Delacruz",
+      name: "Luis Miguel Dela Cruz",
       role: "Backend & Database Developer",
       image: "/snoopy.jpeg",
       description: "Building robust backend systems and maintaining reliable database performance.",
