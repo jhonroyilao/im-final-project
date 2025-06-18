@@ -173,7 +173,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Meet Our Team</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              The dedicated professionals behind the CCIS Lab Management System
+              The dedicated CS students behind the CCIS Lab Management System
             </p>
           </div>
 

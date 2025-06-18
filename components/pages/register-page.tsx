@@ -29,7 +29,7 @@ export default function RegisterPage() {
   // Map department names to match database
   const departmentMap = {
     "Computer Science": "Department of Computer Science",
-    "Information Technology": "Deoartment of Information and Technology"
+    "Information Technology": "Department of Information and Technology"
   }
 
   const [formData, setFormData] = useState({
@@ -382,6 +382,43 @@ export default function RegisterPage() {
                   <option value="Information Technology">Information Technology</option>
                 </select>
               </div>
+
+              {/* Student-specific fields */}
+              {role === "student" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Year Level *</Label>
+                    <select
+                      id="year"
+                      name="year"
+                      required
+                      value={formData.year}
+                      onChange={handleInputChange}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select Year Level</option>
+                      <option value="First Year">First Year</option>
+                      <option value="Second Year">Second Year</option>
+                      <option value="Third Year">Third Year</option>
+                      <option value="Fourth Year">Fourth Year</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="section">Section *</Label>
+                    <Input
+                      id="section"
+                      name="section"
+                      type="text"
+                      required
+                      maxLength={10}
+                      placeholder="e.g., BSCS 2-4, BSIT 1-1"
+                      value={formData.section}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>

@@ -196,20 +196,24 @@ export default function StudentDashboard() {
     return null
   }
 
+
+
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 1:
-        return <Badge className="bg-yellow-500">Pending</Badge>
-      case 2:
         return <Badge className="bg-green-500">Approved</Badge>
-      case 3:
+      case 2:
         return <Badge className="bg-red-500">Rejected</Badge>
+      case 3:
+        return <Badge className="bg-yellow-500">Pending</Badge>
       case 4:
         return <Badge className="bg-gray-500">Cancelled</Badge>
       default:
         return <Badge className="bg-gray-500">Unknown</Badge>
     }
   }
+
+
 
   return (
     <DashboardLayout userRole="student">
