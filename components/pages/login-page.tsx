@@ -54,13 +54,13 @@ export default function LoginPage() {
         .eq('email', normalizedEmail)
         .single()
 
-      if (userError) {
-        console.error('Error checking user:', userError)
+      if (userError || !userData) {
         setError('Invalid email or password')
         return
       }
 
-      if (!userData) {
+      // Check password
+      if (userData.password !== formData.password) {
         setError('Invalid email or password')
         return
       }
