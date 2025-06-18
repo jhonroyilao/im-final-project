@@ -518,33 +518,41 @@ export default function ReserveRoomModal({
                 </div>
               </div>
 
-              {/* Number of Students */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="numberOfStudents" className="text-right">
-                  Number of Students *
-                </Label>
-                <div className="col-span-3">
-                  <div className="flex items-center">
-                    <Users className="mr-2 h-4 w-4 text-gray-500" />
-                    <Input
-                      id="numberOfStudents"
-                      name="numberOfStudents"
-                      type="number"
-                      min="1"
-                      max={selectedRoomData?.room_capacity || 50}
-                      value={formData.numberOfStudents}
-                      onChange={handleInputChange}
-                      className="w-full"
-                      required
-                    />
-                  </div>
-                  {selectedRoomData && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Maximum capacity: {selectedRoomData.room_capacity} students
-                    </p>
-                  )}
-                </div>
-              </div>
+                {/* Number of Students */}
+          <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="numberOfStudents" className="text-right">
+                Number of Students *
+              </Label>
+          <div className="col-span-3">
+            <div className="flex items-center">
+              <Users className="mr-2 h-4 w-4 text-gray-500" />
+              <Input
+              id="numberOfStudents"
+              name="numberOfStudents"
+              type="number"
+              min="1"
+              max={selectedRoomData?.room_capacity || 50}
+              value={formData.numberOfStudents}
+              onChange={handleInputChange}
+              className="w-full"
+              required
+              />
+            </div>
+            {selectedRoomData && (
+              <p className="text-xs text-gray-500 mt-1">
+              Maximum capacity: {selectedRoomData.room_capacity} students
+              </p>
+            )}
+            
+          {selectedRoomData &&
+          formData.numberOfStudents &&
+          Number(formData.numberOfStudents) > selectedRoomData.room_capacity && (
+            <p className="text-xs text-red-600 mt-1">
+                Number of students exceeds the room's maximum capacity!
+            </p>
+            )}
+          </div>
+        </div>
 
               {/* Reason */}
               <div className="grid grid-cols-4 items-center gap-4">
