@@ -51,7 +51,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
     name: "Loading...",
     role: userRole.charAt(0).toUpperCase() + userRole.slice(1),
     id: "Loading...",
-    color: userRole === "faculty" ? "bg-green-600" : "bg-ccis-blue"
+    color: userRole === "faculty" ? "bg-primary" : "bg-ccis-blue"
   })
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
             name: `${userData.first_name} ${userData.last_name}`,
             role: "Faculty",
             id: facultyData.faculty_number,
-            color: "bg-green-600"
+            color: "bg-primary"
           })
         } else if (userRole === 'admin') {
           setUserInfo({
@@ -334,15 +334,15 @@ export default function DashboardLayout({ children, userRole }: DashboardLayoutP
             <div className="text-sm text-gray-500">&copy; 2025 BSCS 2-4. All rights reserved.</div>
             <div className="mt-4 md:mt-0 text-sm text-gray-500">
               <Link href="#" className="hover:text-ccis-blue">
-                Help
+                Jayr
               </Link>
               <span className="mx-2">•</span>
               <Link href="#" className="hover:text-ccis-blue">
-                Privacy
+                Eric
               </Link>
               <span className="mx-2">•</span>
               <Link href="#" className="hover:text-ccis-blue">
-                Terms
+                Luis
               </Link>
             </div>
           </div>
