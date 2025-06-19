@@ -196,8 +196,6 @@ export default function StudentDashboard() {
     return null
   }
 
-
-
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 1:
@@ -213,7 +211,20 @@ export default function StudentDashboard() {
     }
   }
 
-
+  const getPriorityLevelText = (priorityLevel: number): string => {
+    switch (priorityLevel) {
+      case 1:
+        return "1st Priority: University and/or College Functions"
+      case 2:
+        return "2nd Priority: Scheduled Regular Classes"
+      case 3:
+        return "3rd Priority: Make-up and Tutorial Classes initiated by Faculty"
+      case 4:
+        return "4th Priority: Co-curricular Activities"
+      default:
+        return "Not specified"
+    }
+  }
 
   return (
     <DashboardLayout userRole="student">
@@ -295,6 +306,7 @@ export default function StudentDashboard() {
                           <TableHead>Time</TableHead>
                           <TableHead>Room</TableHead>
                           <TableHead>Purpose</TableHead>
+                          <TableHead>Priority</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -310,6 +322,7 @@ export default function StudentDashboard() {
                               Room {reservation.room?.room_number || 'N/A'}
                             </TableCell>
                             <TableCell>{reservation.purpose}</TableCell>
+                            <TableCell>{getPriorityLevelText(reservation.priority_level)}</TableCell>
                             <TableCell>{getStatusBadge(reservation.room_status)}</TableCell>
                           </TableRow>
                         ))}
@@ -350,7 +363,7 @@ export default function StudentDashboard() {
 
       {/* Modals */}
       <ReserveRoomModal open={showReserveModal} onOpenChange={setShowReserveModal} userRole="student" />
-      <FindRoomModal open={showFindModal} onOpenChange={setShowFindModal} />
+      <FindRoomModal open={showFindModal} onOpenChange={setShowFindModal} userRole="student" />
     </DashboardLayout>
   )
 }

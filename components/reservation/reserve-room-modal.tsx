@@ -84,6 +84,7 @@ export default function ReserveRoomModal({
     timeEnd: preselectedTimeEnd || "",
     numberOfStudents: "",
     reason: "",
+    priorityLevel: "4", // Default to lowest priority
   })
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -332,6 +333,7 @@ export default function ReserveRoomModal({
             room_status: pendingStatusId, // Use the fetched pending status ID
             purpose: formData.reason,
             number_of_students: Number.parseInt(formData.numberOfStudents),
+            priority_level: Number.parseInt(formData.priorityLevel),
             equipment_needed: requestItems && Object.keys(selectedItems).length > 0,
           },
         ])
@@ -382,6 +384,7 @@ export default function ReserveRoomModal({
         timeEnd: "",
         numberOfStudents: "",
         reason: "",
+        priorityLevel: "4",
       })
 
       onOpenChange(false)
@@ -410,7 +413,7 @@ export default function ReserveRoomModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Reserve a Room</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-primary">Reserve a Room</DialogTitle>
           <DialogDescription>
             Fill in the details to request a room reservation.
             {userRole === "faculty" ? " Faculty reservations have priority." : ""}
@@ -461,7 +464,6 @@ export default function ReserveRoomModal({
                 </Label>
                 <div className="col-span-3">
                   <div className="flex items-center">
-                    <Clock className="mr-2 h-4 w-4 text-gray-500" />
                     <Input
                       id="timeStart"
                       name="timeStart"
@@ -482,7 +484,6 @@ export default function ReserveRoomModal({
                 </Label>
                 <div className="col-span-3">
                   <div className="flex items-center">
-                    <Clock className="mr-2 h-4 w-4 text-gray-500" />
                     <Input
                       id="timeEnd"
                       name="timeEnd"
@@ -495,6 +496,8 @@ export default function ReserveRoomModal({
                   </div>
                 </div>
               </div>
+
+             
 
               {/* Room Selection */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -518,41 +521,60 @@ export default function ReserveRoomModal({
                 </div>
               </div>
 
-        {/* Number of Students */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="numberOfStudents" className="text-right">
-                Number of Students *
-              </Label>
-        <div className="col-span-3">
-          <div className="flex items-center">
-            <Users className="mr-2 h-4 w-4 text-gray-500" />
-            <Input
-            id="numberOfStudents"
-            name="numberOfStudents"
-            type="number"
-            min="1"
-            max={selectedRoomData?.room_capacity || 50}
-            value={formData.numberOfStudents}
-            onChange={handleInputChange}
-            className="w-full"
-           required
-            />
-          </div>
-        {selectedRoomData && (
-          <p className="text-xs text-gray-500 mt-1">
-           Maximum capacity: {selectedRoomData.room_capacity} students
-          </p>
-          )}
-          
-        {selectedRoomData &&
-            formData.numberOfStudents &&
-            Number(formData.numberOfStudents) > selectedRoomData.room_capacity && (
-            <p className="text-xs text-red-600 mt-1">
-                Number of students exceeds the room's maximum capacity!
-            </p>
-          )}
-          </div>
-            </div>
+              {/* Number of Students */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="numberOfStudents" className="text-right">
+                  No. of Students *
+                </Label>
+                <div className="col-span-3">
+                  <div className="flex items-center">
+                    <Input
+                      id="numberOfStudents"
+                      name="numberOfStudents"
+                      type="number"
+                      min="1"
+                      max={selectedRoomData?.room_capacity || 50}
+                      value={formData.numberOfStudents}
+                      onChange={handleInputChange}
+                      className="w-full"
+                      required
+                    />
+                  </div>
+                  {selectedRoomData && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maximum capacity: {selectedRoomData.room_capacity} students
+                    </p>
+                  )}
+                  
+                  {selectedRoomData &&
+                      formData.numberOfStudents &&
+                      Number(formData.numberOfStudents) > selectedRoomData.room_capacity && (
+                      <p className="text-xs text-red-600 mt-1">
+                          Number of students exceeds the room's maximum capacity!
+                      </p>
+                    )}
+                </div>
+              </div>
+
+               {/* Main Purpose (Priority Level) */}
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="priorityLevel" className="text-right">
+                  Purpose *
+                </Label>
+                <div className="col-span-3">
+                  <Select value={formData.priorityLevel} onValueChange={(value) => setFormData({...formData, priorityLevel: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select main purpose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">University and/or College Functions</SelectItem>
+                      <SelectItem value="2">Scheduled Regular Classes</SelectItem>
+                      <SelectItem value="3">Make-up and Tutorial Classes</SelectItem>
+                      <SelectItem value="4">Co-curricular Activities</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
               {/* Reason */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -700,6 +722,7 @@ export default function ReserveRoomModal({
                   !formData.timeEnd ||
                   !selectedRoom ||
                   !formData.numberOfStudents ||
+                  !formData.priorityLevel ||
                   !formData.reason
                 }
               >

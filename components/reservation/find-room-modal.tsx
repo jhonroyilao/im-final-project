@@ -262,7 +262,7 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Find Available Room</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-primary">Find Available Room</DialogTitle>
             <DialogDescription>Search for available rooms based on your requirements.</DialogDescription>
           </DialogHeader>
 
@@ -395,7 +395,7 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700" disabled={searching || !date}>
+            <Button onClick={handleSearch} className="bg-primary hover:bg-blue-700" disabled={searching || !date}>
               {searching ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -442,7 +442,7 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
                           </div>
                           <Button
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-primary hover:bg-blue-700"
                             onClick={() => handleReserve(room)}
                           >
                             Reserve

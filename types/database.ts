@@ -58,7 +58,7 @@ export interface Reservation {
   starttime: string
   endtime: string
   status: string
-  prioritylevel: string
+  priority_level: number
 }
 
 // Additional interfaces for recommended Supabase additions
