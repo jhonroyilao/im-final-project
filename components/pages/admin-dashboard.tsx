@@ -482,13 +482,20 @@ export default function AdminDashboard() {
   }
 
   // RESERVATION CRUD OPERATIONS
-  const handleReservationStatus = async (id: number, status: number, approvedBy: number) => {
+  const handleReservationStatus = async (id: number, status: number) => {
+    // Get adminId from localStorage
+    const adminIdString = (typeof window !== 'undefined') ? localStorage.getItem('adminId') : null;
+    const adminId = adminIdString ? parseInt(adminIdString, 10) : null;
+    if (!adminId) {
+      toast.error('Admin ID not found. Please log in again.');
+      return;
+    }
     try {
       const { error } = await supabase
         .from("reservation")
         .update({
           room_status: status,
-          approved_by: approvedBy,
+          approved_by: adminId,
           approved_at: new Date().toISOString(),
         })
         .eq("reservation_id", id)
@@ -498,8 +505,16 @@ export default function AdminDashboard() {
       fetchReservations()
       fetchStats()
     } catch (error) {
-      console.error("Error updating reservation:", error)
-      toast.error("Failed to update reservation status")
+      let errorMsg = "";
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        errorMsg = JSON.stringify(error);
+      } else {
+        errorMsg = String(error);
+      }
+      console.error("Error updating reservation:", errorMsg);
+      toast.error(`Failed to update reservation status: ${errorMsg}`);
     }
   }
 
@@ -1533,7 +1548,7 @@ export default function AdminDashboard() {
                     <Button
                       className="bg-primary hover:bg-blue-900 text-white flex-1"
                       onClick={() => {
-                        handleReservationStatus(viewingReservation.reservation_id, 1, 1)
+                        handleReservationStatus(viewingReservation.reservation_id, 1)
                         setIsViewReservationOpen(false)
                       }}
                     >
@@ -1542,7 +1557,7 @@ export default function AdminDashboard() {
                     <Button
                       className="bg-red-500 hover:bg-red-600 text-white flex-1"
                       onClick={() => {
-                        handleReservationStatus(viewingReservation.reservation_id, 2, 1)
+                        handleReservationStatus(viewingReservation.reservation_id, 2)
                         setIsViewReservationOpen(false)
                       }}
                     >
@@ -3204,7 +3219,6 @@ export default function AdminDashboard() {
           </Tabs>
         </div>
 
-        {/* Sidebar removed for admin */}
       </div>
     </DashboardLayout>
   )

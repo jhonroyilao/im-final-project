@@ -145,7 +145,7 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
       const { data: rooms, error: roomsError } = await supabase
         .from("room")
         .select("*")
-        .eq("is_available", true)
+        .eq("room_status", 1)
         .order("room_number")
 
       if (roomsError) throw roomsError
@@ -172,7 +172,6 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
         .from("scheduledclass")
         .select("*")
         .eq("day_of_week", dayOfWeek)
-        .eq("is_active", true)
 
       if (classesError) throw classesError
 
@@ -245,8 +244,16 @@ export default function FindRoomModal({ open, onOpenChange, userRole }: FindRoom
         toast.info("No rooms available matching your criteria")
       }
     } catch (error) {
-      console.error("Error searching for rooms:", error)
-      toast.error("Failed to search for available rooms")
+      let errorMsg = "";
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        errorMsg = JSON.stringify(error);
+      } else {
+        errorMsg = String(error);
+      }
+      console.error("Error searching for rooms:", errorMsg);
+      toast.error(`Failed to search for available rooms: ${errorMsg}`);
     } finally {
       setSearching(false)
     }
