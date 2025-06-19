@@ -103,7 +103,6 @@ export default function ReserveRoomModal({
         const { data: roomsData, error: roomsError } = await supabase
           .from("room")
           .select("*")
-          .eq("is_available", true)
           .order("room_number")
 
         if (roomsError) throw roomsError

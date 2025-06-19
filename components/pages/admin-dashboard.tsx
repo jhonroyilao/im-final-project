@@ -174,7 +174,6 @@ export default function AdminDashboard() {
   })
   const [roomFilters, setRoomFilters] = useState({
     status: "all",
-    availability: "all",
   })
   const [userFilters, setUserFilters] = useState({
     role: "all",
@@ -774,12 +773,7 @@ export default function AdminDashboard() {
 
       const matchesStatus = roomFilters.status === "all" || room.room_status.toString() === roomFilters.status
 
-      const matchesAvailability =
-        roomFilters.availability === "all" ||
-        (roomFilters.availability === "available" && room.is_available) ||
-        (roomFilters.availability === "unavailable" && !room.is_available)
-
-      return matchesSearch && matchesStatus && matchesAvailability
+      return matchesSearch && matchesStatus
     })
 
     return sortData(filtered, roomSort.field, roomSort.direction)
@@ -1901,32 +1895,16 @@ export default function AdminDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="1">Available</SelectItem>
-                        <SelectItem value="2">Maintenance</SelectItem>
-                        <SelectItem value="3">Occupied</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Availability</Label>
-                    <Select
-                      value={roomFilters.availability}
-                      onValueChange={(value) => setRoomFilters({ ...roomFilters, availability: value })}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="unavailable">Unavailable</SelectItem>
+                        <SelectItem value="1">Available for Booking</SelectItem>
+                        <SelectItem value="2">Under Maintenance</SelectItem>
+                        <SelectItem value="3">Unavailable</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => setRoomFilters({ status: "all", availability: "all" })}
+                  onClick={() => setRoomFilters({ status: "all" })}
                   className="text-center justify-center"
                 >
                   <X className="w-4 h-4 mr-2" />
@@ -1979,7 +1957,7 @@ export default function AdminDashboard() {
                   size="sm"
                   onClick={() => {
                     setSearchQuery("")
-                    setRoomFilters({ status: "all", availability: "all" })
+                    setRoomFilters({ status: "all" })
                   }}
                 >
                   <X className="w-4 h-4" />
@@ -2016,14 +1994,7 @@ export default function AdminDashboard() {
                       currentSort={roomSort}
                       onSort={(field) => handleSort(field, roomSort, setRoomSort)}
                     >
-                      Status
-                    </SortableTableHead>
-                    <SortableTableHead
-                      field="is_available"
-                      currentSort={roomSort}
-                      onSort={(field) => handleSort(field, roomSort, setRoomSort)}
-                    >
-                      Availability
+                      Room Status
                     </SortableTableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -2046,17 +2017,12 @@ export default function AdminDashboard() {
                           }
                         >
                           {room.room_status === 1
-                            ? "Available"
+                            ? "Available for Booking"
                             : room.room_status === 2
-                              ? "Maintenance"
+                              ? "Under Maintenance"
                               : room.room_status === 3
-                                ? "Occupied"
+                                ? "Unavailable"
                                 : "Unknown"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={room.is_available ? "outline" : "destructive"}>
-                          {room.is_available ? "Available" : "Unavailable"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -2159,9 +2125,9 @@ export default function AdminDashboard() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Available</SelectItem>
-                    <SelectItem value="2">Maintenance</SelectItem>
-                    <SelectItem value="3">Occupied</SelectItem>
+                    <SelectItem value="1">Available for Booking</SelectItem>
+                    <SelectItem value="2">Under Maintenance</SelectItem>
+                    <SelectItem value="3">Unavailable</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2223,9 +2189,9 @@ export default function AdminDashboard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Available</SelectItem>
-                      <SelectItem value="2">Maintenance</SelectItem>
-                      <SelectItem value="3">Occupied</SelectItem>
+                      <SelectItem value="1">Available for Booking</SelectItem>
+                      <SelectItem value="2">Under Maintenance</SelectItem>
+                      <SelectItem value="3">Unavailable</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
