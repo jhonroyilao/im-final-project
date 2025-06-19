@@ -17,6 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
+      <head>
+        <link rel="icon" href="/PUP_CCIS_logo.png" type="image/png" />
+      </head>
       <body className={`${inter.className} min-h-full antialiased`}>{children}</body>
     </html>
   )
