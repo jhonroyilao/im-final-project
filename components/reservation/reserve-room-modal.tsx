@@ -46,6 +46,7 @@ interface Room {
   room_capacity: number
   description?: string
   preIncludedEquipment?: string[]
+  room_status: number
 }
 
 interface Equipment {
@@ -540,12 +541,20 @@ export default function ReserveRoomModal({
                       <SelectValue placeholder="Select a room" />
                     </SelectTrigger>
                     <SelectContent>
-                      {rooms.map((room) => (
-                        <SelectItem key={room.room_id} value={room.room_id.toString()}>
-                          {room.room_number} - {room.description || `Room ${room.room_number}`} (Capacity:{" "}
-                          {room.room_capacity})
-                        </SelectItem>
-                      ))}
+                      {rooms.map((room) => {
+                        const isUnavailable = room.room_status === 2 || room.room_status === 3;
+                        return (
+                          <SelectItem
+                            key={room.room_id}
+                            value={room.room_id.toString()}
+                            disabled={isUnavailable}
+                            className={isUnavailable ? 'opacity-50 pointer-events-none' : ''}
+                          >
+                            {room.room_number} - {room.description || `Room ${room.room_number}`} (Capacity: {room.room_capacity})
+                            {isUnavailable && ' (Unavailable)'}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
