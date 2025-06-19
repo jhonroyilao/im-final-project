@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Shield } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -22,6 +23,11 @@ export default function AdminLoginPage() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -36,19 +42,53 @@ export default function AdminLoginPage() {
     setError("")
 
     try {
-      // Demo admin credentials
-      if (formData.adminId === "ADMIN001" && formData.password === "admin123") {
-        setTimeout(() => {
-          router.push("/dashboard/admin")
-        }, 1000)
-      } else {
-        setError("Invalid admin credentials")
+      // Look up admin by admin_number in admin table, join to users
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin')
+        .select('admin_id, user_id, admin_number, users:user_id (user_id, user_role, password, email, is_active)')
+        .eq('admin_number', formData.adminId)
+        .single()
+
+      if (adminError || !adminData || !adminData.users) {
+        setError('Invalid admin credentials')
+        return
       }
-    } catch (err: any) {
-      setError("An error occurred during login")
+
+      if (!adminData.users || (Array.isArray(adminData.users) && adminData.users.length === 0)) {
+        setError('Invalid admin credentials')
+        return
+      }
+      const user = Array.isArray(adminData.users) ? adminData.users[0] : adminData.users;
+
+      // Check user_role and password
+      if (user.user_role !== 1) {
+        setError('Not an admin account')
+        return
+      }
+      if (user.password !== formData.password) {
+        setError('Invalid admin credentials')
+        return
+      }
+      if (user.is_active === false) {
+        setError('This admin account is inactive')
+        return
+      }
+
+      // Store user info
+      localStorage.setItem('userId', user.user_id)
+      localStorage.setItem('userRole', user.user_role)
+
+      // Redirect to admin dashboard
+      router.push('/dashboard/admin')
+    } catch (err) {
+      setError('An error occurred during login')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!isClient) {
+    return null
   }
 
   return (
@@ -95,7 +135,7 @@ export default function AdminLoginPage() {
                   name="adminId"
                   type="text"
                   required
-                  placeholder="Enter your admin ID"
+                  placeholder="e.g. 01234"
                   value={formData.adminId}
                   onChange={handleInputChange}
                 />
@@ -119,17 +159,7 @@ export default function AdminLoginPage() {
             </form>
 
             {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Demo Admin Credentials:</h4>
-              <div className="text-xs text-gray-600">
-                <p>
-                  <strong>Admin ID:</strong> ADMIN001
-                </p>
-                <p>
-                  <strong>Password:</strong> admin123
-                </p>
-              </div>
-            </div>
+            
           </CardContent>
         </Card>
       </div>
