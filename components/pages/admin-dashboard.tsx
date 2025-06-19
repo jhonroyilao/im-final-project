@@ -2626,7 +2626,7 @@ export default function AdminDashboard() {
                 <Label htmlFor="user_role">Role *</Label>
                 <Select
                   value={newUser.user_role}
-                  onChange={(e) => setNewUser({ ...newUser, user_role: e.target.value })}
+                  onValueChange={(value) => setNewUser({ ...newUser, user_role: value })}
                 >
                   <SelectTrigger className="border-gray-300">
                     <SelectValue placeholder="Select role" />
@@ -2642,7 +2642,7 @@ export default function AdminDashboard() {
                 <Label htmlFor="department">Department *</Label>
                 <Select
                   value={newUser.department}
-                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                  onValueChange={(value) => setNewUser({ ...newUser, department: value })}
                 >
                   <SelectTrigger className="border-gray-300">
                     <SelectValue placeholder="Select department" />
@@ -2724,7 +2724,7 @@ export default function AdminDashboard() {
                   <Label htmlFor="edit_user_role">Role *</Label>
                   <Select
                     value={editingUser.user_role.toString()}
-                    onChange={(e) => setEditingUser({ ...editingUser, user_role: Number.parseInt(e.target.value) })}
+                    onValueChange={(value) => setEditingUser({ ...editingUser, user_role: Number.parseInt(value) })}
                   >
                     <SelectTrigger className="border-gray-300">
                       <SelectValue />
@@ -2740,7 +2740,7 @@ export default function AdminDashboard() {
                   <Label htmlFor="edit_department">Department *</Label>
                   <Select
                     value={editingUser.department.toString()}
-                    onChange={(e) => setEditingUser({ ...editingUser, department: Number.parseInt(e.target.value) })}
+                    onValueChange={(value) => setEditingUser({ ...editingUser, department: Number.parseInt(value) })}
                   >
                     <SelectTrigger className="border-gray-300">
                       <SelectValue />
@@ -2869,13 +2869,13 @@ export default function AdminDashboard() {
   const getPriorityLevelText = (priorityLevel: number): string => {
     switch (priorityLevel) {
       case 1:
-        return "1st Priority: University and/or College Functions"
+        return "High Priority"
       case 2:
-        return "2nd Priority: Scheduled Regular Classes"
+        return "Moderate Priority"
       case 3:
-        return "3rd Priority: Make-up and Tutorial Classes initiated by Faculty"
+        return "Medium Priority"
       case 4:
-        return "4th Priority: Co-curricular Activities"
+        return "Low Priority"
       default:
         return "Not specified"
     }
@@ -2883,12 +2883,17 @@ export default function AdminDashboard() {
 
   const getPriorityLevelBadge = (priorityLevel: number) => {
     const text = getPriorityLevelText(priorityLevel)
-    const variant = priorityLevel === 1 ? "default" : priorityLevel === 2 ? "secondary" : priorityLevel === 3 ? "outline" : "destructive"
-    
+    let className = "text-xs px-2 py-1 rounded font-semibold"
+    let colorClass = ""
+    if (priorityLevel === 1) {
+      colorClass = "bg-red-100 text-red-700 border border-red-300"
+    } else if (priorityLevel === 2 || priorityLevel === 3) {
+      colorClass = "bg-blue-100 text-blue-700 border border-blue-300"
+    } else {
+      colorClass = "bg-gray-100 text-gray-700 border border-gray-300"
+    }
     return (
-      <Badge variant={variant} className="text-xs">
-        {text}
-      </Badge>
+      <span className={`${className} ${colorClass}`}>{text}</span>
     )
   }
 

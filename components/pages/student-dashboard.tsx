@@ -214,13 +214,13 @@ export default function StudentDashboard() {
   const getPriorityLevelText = (priorityLevel: number): string => {
     switch (priorityLevel) {
       case 1:
-        return "1st Priority: University and/or College Functions"
+        return "University and/or College Functions"
       case 2:
-        return "2nd Priority: Scheduled Regular Classes"
+        return "Scheduled Regular Classes"
       case 3:
-        return "3rd Priority: Make-up and Tutorial Classes initiated by Faculty"
+        return "Make-up and Tutorial Classes initiated by Faculty"
       case 4:
-        return "4th Priority: Co-curricular Activities"
+        return "Co-curricular Activities"
       default:
         return "Not specified"
     }
@@ -305,8 +305,8 @@ export default function StudentDashboard() {
                           <TableHead>Date</TableHead>
                           <TableHead>Time</TableHead>
                           <TableHead>Room</TableHead>
+                          <TableHead>Reason</TableHead>
                           <TableHead>Purpose</TableHead>
-                          <TableHead>Priority</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -356,9 +356,9 @@ export default function StudentDashboard() {
         </div>
 
         {/* Sidebar */}
-        <div className="hidden lg:block border-l bg-gray-50 p-4">
+        {/* <div className="hidden lg:block border-l bg-gray-50 p-4">
           <ReservationSidebar userRole="student" />
-        </div>
+        </div> */}
       </div>
 
       {/* Modals */}

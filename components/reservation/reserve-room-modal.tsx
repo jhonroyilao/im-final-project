@@ -568,7 +568,6 @@ export default function ReserveRoomModal({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">University and/or College Functions</SelectItem>
-                      <SelectItem value="2">Scheduled Regular Classes</SelectItem>
                       <SelectItem value="3">Make-up and Tutorial Classes</SelectItem>
                       <SelectItem value="4">Co-curricular Activities</SelectItem>
                     </SelectContent>
