@@ -20,6 +20,8 @@ import {
   FileDown,
   CalendarDays,
   FileText,
+  Check,
+  X as XIcon,
 } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import RoomCalendar from "@/components/calendar/room-calendar"
@@ -1522,19 +1524,35 @@ export default function AdminDashboard() {
                   <div>
                     <Label className="text-xs text-gray-500">Requested Equipment</Label>
                     <div className="mt-2 space-y-2">
-                      {viewingReservation.requestedequipment.map((equipment) => (
-                        <div key={equipment.request_equipment_id} className="p-3 bg-gray-50 rounded border">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">{equipment.inventoryitem?.item_name || 'Unknown Item'}</span>
-                            <span className="text-sm text-gray-600">Quantity: {equipment.quantity}</span>
+                      {viewingReservation.requestedequipment.map((equipment) => {
+                        const item = inventory.find((i) => Number(i.item_id) === Number(equipment.item_id));
+                        const availableStock = item ? item.quantity : 0;
+                        const isPending = equipment.status === 'pending';
+                        return (
+                          <div key={equipment.request_equipment_id} className="p-3 bg-gray-50 rounded border">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">{equipment.inventoryitem?.item_name || 'Unknown Item'}</span>
+                              <span className="text-sm text-gray-600">Quantity: {equipment.quantity}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">Available: {availableStock}</div>
+                            <div className="mt-1 flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {equipment.status}
+                              </Badge>
+                              {isPending && (
+                                <>
+                                  <Button size="icon" variant="ghost" className="text-green-600 hover:bg-green-100" title="Approve" onClick={() => handleApproveEquipment(equipment.request_equipment_id, equipment.item_id, equipment.quantity)}>
+                                    <Check className="w-4 h-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="text-red-600 hover:bg-red-100" title="Reject" onClick={() => handleRejectEquipment(equipment.request_equipment_id)}>
+                                    <XIcon className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <div className="mt-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {equipment.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -3148,6 +3166,47 @@ export default function AdminDashboard() {
       <span className={`${className} ${colorClass}`}>{text}</span>
     )
   }
+
+  // Add at the top-level of AdminDashboard (inside the component, after other handlers):
+  const handleApproveEquipment = async (requestEquipmentId: number, itemId: number, quantity: number) => {
+    const item = inventory.find((i) => Number(i.item_id) === Number(itemId));
+    if (!item) {
+      toast.error('Inventory item not found');
+      return;
+    }
+    if (item.quantity < quantity) {
+      toast.error('Not enough stock to approve this request');
+      return;
+    }
+    const { error } = await supabase
+      .from('requestedequipment')
+      .update({ status: 'approved' })
+      .eq('request_equipment_id', requestEquipmentId);
+    if (error) {
+      toast.error('Failed to approve equipment request');
+      return;
+    }
+    await supabase
+      .from('inventoryitem')
+      .update({ quantity: item.quantity - quantity })
+      .eq('item_id', itemId);
+    toast.success('Equipment approved');
+    fetchReservations();
+    fetchInventory();
+  };
+
+  const handleRejectEquipment = async (requestEquipmentId: number) => {
+    const { error } = await supabase
+      .from('requestedequipment')
+      .update({ status: 'rejected' })
+      .eq('request_equipment_id', requestEquipmentId);
+    if (error) {
+      toast.error('Failed to reject equipment request');
+      return;
+    }
+    toast.success('Equipment rejected');
+    fetchReservations();
+  };
 
   if (loading) {
     return (
