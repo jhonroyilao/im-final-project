@@ -92,6 +92,7 @@ export default function ReserveRoomModal({
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [selectedRoomEquipment, setSelectedRoomEquipment] = useState<string[]>([])
   const [roomStatuses, setRoomStatuses] = useState<{ id: number; name: string }[]>([])
+  const [timeErrors, setTimeErrors] = useState({ timeStart: '', timeEnd: '' });
 
   // Fetch rooms, equipment, and room statuses from database
   useEffect(() => {
@@ -204,13 +205,27 @@ export default function ReserveRoomModal({
     }
   }
 
+  // Helper to check if a time is within allowed range
+  const isTimeValid = (time: string) => {
+    if (!time) return false;
+    return time >= '07:00' && time <= '19:00';
+  };
+
+  // Enhanced input change handler for time validation
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+    // Validate time fields
+    if (name === 'timeStart' || name === 'timeEnd') {
+      setTimeErrors((prev) => ({
+        ...prev,
+        [name]: isTimeValid(value) ? '' : 'Time must be between 07:00 and 19:00',
+      }));
+    }
+  };
 
   const handleRoomChange = async (roomId: string) => {
     setSelectedRoom(roomId)
@@ -256,10 +271,13 @@ export default function ReserveRoomModal({
       toast.error("Please fill in all required fields")
       return
     }
-
-    // Validate time range
-    if (formData.timeStart >= formData.timeEnd) {
-      toast.error("End time must be after start time")
+    // Check time errors
+    if (timeErrors.timeStart || timeErrors.timeEnd) {
+      toast.error("Reservation time must be between 07:00 and 19:00")
+      return
+    }
+    if (!isTimeValid(formData.timeStart) || !isTimeValid(formData.timeEnd)) {
+      toast.error("Reservation time must be between 07:00 and 19:00")
       return
     }
 
@@ -409,6 +427,13 @@ export default function ReserveRoomModal({
 
   const selectedRoomData = rooms.find((room) => room.room_id.toString() === selectedRoom)
 
+  useEffect(() => {
+    setTimeErrors({
+      timeStart: isTimeValid(formData.timeStart) ? '' : (formData.timeStart ? 'Time must be between 07:00 and 19:00' : ''),
+      timeEnd: isTimeValid(formData.timeEnd) ? '' : (formData.timeEnd ? 'Time must be between 07:00 and 19:00' : ''),
+    });
+  }, [open, formData.timeStart, formData.timeEnd]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -470,10 +495,13 @@ export default function ReserveRoomModal({
                       type="time"
                       value={formData.timeStart}
                       onChange={handleInputChange}
-                      className="w-full"
+                      className={cn("w-full", timeErrors.timeStart && "border-red-500 focus-visible:ring-red-500")}
                       required
                     />
                   </div>
+                  {timeErrors.timeStart && (
+                    <p className="text-xs text-red-600 mt-1">{timeErrors.timeStart}</p>
+                  )}
                 </div>
               </div>
 
@@ -490,10 +518,13 @@ export default function ReserveRoomModal({
                       type="time"
                       value={formData.timeEnd}
                       onChange={handleInputChange}
-                      className="w-full"
+                      className={cn("w-full", timeErrors.timeEnd && "border-red-500 focus-visible:ring-red-500")}
                       required
                     />
                   </div>
+                  {timeErrors.timeEnd && (
+                    <p className="text-xs text-red-600 mt-1">{timeErrors.timeEnd}</p>
+                  )}
                 </div>
               </div>
 
