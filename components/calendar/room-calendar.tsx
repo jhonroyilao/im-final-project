@@ -90,12 +90,12 @@ const rooms = [
   { id: 9, name: "S509", description: "" },
 ]
 
-// Generate time slots with 30-minute intervals from 7:00 AM to 7:00 PM
+// Generate time slots with 30-minute intervals from 7:00 AM to 9:00 PM
 const generateTimeSlots = () => {
   const slots = []
-  for (let hour = 7; hour <= 19; hour++) {
+  for (let hour = 7; hour <= 21; hour++) {
     slots.push(`${hour.toString().padStart(2, "0")}:00:00`)
-    if (hour < 19) {
+    if (hour < 21) {
       slots.push(`${hour.toString().padStart(2, "0")}:30:00`)
     }
   }
@@ -623,10 +623,10 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
             ))}
           </div>
 
-          {/* Evening time slots (17:00 - 19:00) */}
+          {/* Evening time slots (17:00 - 21:00) */}
           <div className="text-sm font-medium text-gray-700 mb-1 mt-4">Evening</div>
           <div className="grid grid-cols-8 gap-1">
-            <div className="p-2 bg-gray-50 border rounded font-medium">17:00 - 19:00</div>
+            <div className="p-2 bg-gray-50 border rounded font-medium">17:00 - 21:00</div>
             {dateRange.slice(0, 7).map((date) => (
               <div key={date.toISOString()} className="border rounded p-2 bg-white">
                 <div className="space-y-2">

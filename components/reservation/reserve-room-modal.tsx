@@ -208,7 +208,7 @@ export default function ReserveRoomModal({
   // Helper to check if a time is within allowed range
   const isTimeValid = (time: string) => {
     if (!time) return false;
-    return time >= '07:00' && time <= '19:00';
+    return time >= '07:00' && time <= '21:00';
   };
 
   // Enhanced input change handler for time validation
@@ -222,7 +222,7 @@ export default function ReserveRoomModal({
     if (name === 'timeStart' || name === 'timeEnd') {
       setTimeErrors((prev) => ({
         ...prev,
-        [name]: isTimeValid(value) ? '' : 'Time must be between 07:00 and 19:00',
+        [name]: isTimeValid(value) ? '' : 'Time must be between 07:00 and 21:00',
       }));
     }
   };
@@ -273,11 +273,11 @@ export default function ReserveRoomModal({
     }
     // Check time errors
     if (timeErrors.timeStart || timeErrors.timeEnd) {
-      toast.error("Reservation time must be between 07:00 and 19:00")
+      toast.error("Reservation time must be between 07:00 and 21:00")
       return
     }
     if (!isTimeValid(formData.timeStart) || !isTimeValid(formData.timeEnd)) {
-      toast.error("Reservation time must be between 07:00 and 19:00")
+      toast.error("Reservation time must be between 07:00 and 21:00")
       return
     }
 
@@ -429,8 +429,8 @@ export default function ReserveRoomModal({
 
   useEffect(() => {
     setTimeErrors({
-      timeStart: isTimeValid(formData.timeStart) ? '' : (formData.timeStart ? 'Time must be between 07:00 and 19:00' : ''),
-      timeEnd: isTimeValid(formData.timeEnd) ? '' : (formData.timeEnd ? 'Time must be between 07:00 and 19:00' : ''),
+      timeStart: isTimeValid(formData.timeStart) ? '' : (formData.timeStart ? 'Time must be between 07:00 and 21:00' : ''),
+      timeEnd: isTimeValid(formData.timeEnd) ? '' : (formData.timeEnd ? 'Time must be between 07:00 and 21:00' : ''),
     });
   }, [open, formData.timeStart, formData.timeEnd]);
 
