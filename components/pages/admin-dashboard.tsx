@@ -159,6 +159,7 @@ export default function AdminDashboard() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [userSearchQuery, setUserSearchQuery] = useState("")
 
   // Filter and sort states
   const [reservationFilters, setReservationFilters] = useState({
@@ -787,8 +788,8 @@ export default function AdminDashboard() {
   const getFilteredUsers = () => {
     const filtered = users.filter((user: any) => {
       const matchesSearch =
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        `${user.first_name} ${user.last_name}`.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
 
       const matchesRole = userFilters.role === "all" || user.user_role.toString() === userFilters.role
 
@@ -2396,15 +2397,15 @@ export default function AdminDashboard() {
               <Input
                 placeholder="Search users..."
                 className="max-w-sm border-gray-300"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
               />
-              {(searchQuery || Object.values(userFilters).some((f) => f !== "all")) && (
+              {(userSearchQuery || Object.values(userFilters).some((f) => f !== "all")) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setSearchQuery("")
+                    setUserSearchQuery("")
                     setUserFilters({ role: "all", department: "all", status: "all" })
                   }}
                 >
@@ -2512,7 +2513,7 @@ export default function AdminDashboard() {
                             variant="outline"
                             className="border-gray-300"
                             onClick={() => {
-                              setEditingUser(user)
+                              setEditingUser({ ...user }) // clone to decouple from users array
                               setIsEditUserOpen(true)
                             }}
                           >
