@@ -40,7 +40,6 @@ interface ScheduledClass {
   academic_year: string
   course_code: string
   max_student: number
-  is_active: boolean
   created_at: string
   updated_at: string
   Room?: {
@@ -224,7 +223,6 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
             academic_year,
             course_code,
             max_student,
-            is_active,
             created_at,
             updated_at,
             Room:room_id (
@@ -241,7 +239,6 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
           `)
           .eq("semester", "Second Semester")
           .eq("academic_year", "2024-2025")
-          .eq("is_active", true)
 
         if (error) {
           console.error("Error fetching scheduled classes:", error)
@@ -266,7 +263,6 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
           academic_year: item.academic_year,
           course_code: item.course_code,
           max_student: item.max_student,
-          is_active: item.is_active,
           created_at: item.created_at,
           updated_at: item.updated_at,
           Room: item.Room?.[0],
@@ -330,7 +326,7 @@ export default function RoomCalendar({ userRole = "student" }: RoomCalendarProps
     const dbDayOfWeek = jsDayOfWeek === 0 ? 7 : jsDayOfWeek
 
     const classes = scheduledClasses.filter(
-      (cls) => cls.room_id === room.id && cls.day_of_week === dbDayOfWeek && cls.is_active,
+      (cls) => cls.room_id === room.id && cls.day_of_week === dbDayOfWeek
     )
 
     return classes

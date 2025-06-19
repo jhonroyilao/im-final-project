@@ -42,41 +42,48 @@ export default function AdminLoginPage() {
     setError("")
 
     try {
-      // Look up admin by admin_number in admin table, join to users
+      // Look up admin by admin_number in admin table, join to users for role check
       const { data: adminData, error: adminError } = await supabase
         .from('admin')
-        .select('admin_id, user_id, admin_number, users:user_id (user_id, user_role, password, email, is_active)')
+        .select('admin_id, user_id, admin_number, admin_password, users:user_id (user_role, is_active)')
         .eq('admin_number', formData.adminId)
         .single()
 
-      if (adminError || !adminData || !adminData.users) {
+      if (adminError || !adminData) {
         setError('Invalid admin credentials')
         return
       }
 
-      if (!adminData.users || (Array.isArray(adminData.users) && adminData.users.length === 0)) {
+      // Check password (now in admin table)
+      if (adminData.admin_password !== formData.password) {
         setError('Invalid admin credentials')
         return
       }
-      const user = Array.isArray(adminData.users) ? adminData.users[0] : adminData.users;
 
-      // Check user_role and password
-      if (user.user_role !== 1) {
-        setError('Not an admin account')
-        return
+      // Optional: check user_role is 1 (admin)
+      let userObj: any = adminData.users;
+      if (Array.isArray(userObj)) {
+        if (userObj.length === 0) {
+          setError('Not an admin account')
+          return
+        }
+        userObj = userObj[0];
       }
-      if (user.password !== formData.password) {
-        setError('Invalid admin credentials')
-        return
-      }
-      if (user.is_active === false) {
-        setError('This admin account is inactive')
-        return
+      if (userObj && typeof userObj === 'object' && !Array.isArray(userObj)) {
+        if (userObj.user_role !== 1) {
+          setError('Not an admin account')
+          return
+        }
+        if (userObj.is_active === false) {
+          setError('This admin account is inactive')
+          return
+        }
       }
 
-      // Store user info
-      localStorage.setItem('userId', user.user_id)
-      localStorage.setItem('userRole', user.user_role)
+      // Store adminId and userId
+      localStorage.setItem('adminId', adminData.admin_id)
+      localStorage.setItem('userId', adminData.user_id)
+      localStorage.setItem('userRole', '1')
 
       // Redirect to admin dashboard
       router.push('/dashboard/admin')
