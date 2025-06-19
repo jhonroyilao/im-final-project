@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -241,6 +241,20 @@ export default function AdminDashboard() {
     password: "",
   })
 
+  // Add state for room equipment management after editingRoom state
+  const [roomEquipment, setRoomEquipment] = useState<any[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(false);
+  const [equipmentError, setEquipmentError] = useState("");
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
+  const [addQuantity, setAddQuantity] = useState(1);
+  const [editQuantities, setEditQuantities] = useState<{ [key: string]: number }>({});
+  const [editErrors, setEditErrors] = useState<{ [key: string]: string }>({});
+  const [inventoryFetchError, setInventoryFetchError] = useState("");
+
+  // Add state to store all room equipment for all rooms
+  const [allRoomEquipment, setAllRoomEquipment] = useState<any[]>([]);
+
   // Utility functions
   const exportToCSV = (data: any[], filename: string) => {
     if (data.length === 0) {
@@ -397,18 +411,45 @@ export default function AdminDashboard() {
   // Fetch inventory items
   const fetchInventory = async () => {
     try {
-      console.log("Fetching inventory...")
-
-      const { data, error } = await supabase.from("inventoryitem").select("*").order("item_name")
-
-      if (error) throw error
-      console.log("Fetched inventory:", data)
-      setInventory(data || [])
+      setInventoryFetchError("");
+      // Step 1: Fetch all inventory items with quantity > 0
+      const { data: items, error: itemsError } = await supabase
+        .from("inventoryitem")
+        .select("item_id, item_name, category_id, quantity, condition_id, purchase_date")
+        .gt("quantity", 0)
+        .order("item_name");
+      if (itemsError) {
+        setInventoryFetchError(itemsError.message || "Failed to fetch inventory items");
+        setInventory([]);
+        return;
+      }
+      // Step 2: Fetch all categories
+      const { data: categories, error: categoriesError } = await supabase
+        .from("inventorycategory")
+        .select("category_id, category_name");
+      if (categoriesError) {
+        setInventoryFetchError(categoriesError.message || "Failed to fetch inventory categories");
+        setInventory([]);
+        return;
+      }
+      // Step 3: Map categories to items
+      const inventoryWithCategories =
+        items?.map((item) => {
+          const category = categories?.find((cat) => cat.category_id === item.category_id);
+          return {
+            ...item,
+            inventorycategory: category || { category_name: "Unknown" },
+          };
+        }) || [];
+      setInventory(inventoryWithCategories);
+      if (!inventoryWithCategories.length) {
+        setInventoryFetchError("No inventory items found. Check if the table has data and RLS policies allow access.");
+      }
     } catch (error) {
-      console.error("Error fetching inventory:", error)
-      toast.error("Failed to fetch inventory items")
+      setInventoryFetchError("Unexpected error fetching inventory items");
+      setInventory([]);
     }
-  }
+  };
 
   // Fetch rooms
   const fetchRooms = async () => {
@@ -810,6 +851,126 @@ export default function AdminDashboard() {
     }
     fetchData()
   }, [])
+
+  // Fetch room equipment when editingRoom changes
+  useEffect(() => {
+    const fetchRoomEquipment = async () => {
+      if (!editingRoom) return;
+      setEquipmentLoading(true);
+      setEquipmentError("");
+      const { data, error } = await supabase
+        .from("roomequipment")
+        .select(`equipment_id, item_id, quantity, inventoryitem:item_id (item_name, quantity, category_id, condition_id, purchase_date)`)
+        .eq("room_id", editingRoom.room_id);
+      if (error) {
+        setEquipmentError("Failed to fetch room equipment");
+        setRoomEquipment([]);
+      } else {
+        setRoomEquipment(data || []);
+        // Set initial edit quantities
+        const eq: { [key: string]: number } = {};
+        (data || []).forEach((item: any) => {
+          eq[item.item_id] = item.quantity;
+        });
+        setEditQuantities(eq);
+      }
+      setEquipmentLoading(false);
+    };
+    if (isEditRoomOpen && editingRoom) fetchRoomEquipment();
+  }, [isEditRoomOpen, editingRoom]);
+
+  // Fetch all room equipment for accurate available calculation
+  useEffect(() => {
+    const fetchAllRoomEquipment = async () => {
+      const { data, error } = await supabase
+        .from("roomequipment")
+        .select("item_id, quantity, room_id");
+      if (!error && data) setAllRoomEquipment(data);
+      else setAllRoomEquipment([]);
+    };
+    if (isEditRoomOpen) fetchAllRoomEquipment();
+  }, [isEditRoomOpen]);
+
+  // Robust helper to get available quantity for an item
+  // For editing: available = total - assigned to other rooms + current room's assigned
+  // For adding: available = total - assigned to all rooms
+  const getAvailableQuantity = (item_id: number) => {
+    // Debug: log the data used for calculation
+    console.log("allRoomEquipment", allRoomEquipment);
+    console.log("inventory", inventory);
+    const total = inventory.find((i) => Number(i.item_id) === Number(item_id))?.quantity ?? 0;
+    const assigned = allRoomEquipment
+      .filter((eq) => Number(eq.item_id) === Number(item_id))
+      .reduce((sum, eq) => sum + (eq.quantity || 0), 0);
+    return total - assigned;
+  };
+
+  // Update handleAddEquipmentToRoom to refresh both after adding
+  const handleAddEquipmentToRoom = async () => {
+    setEquipmentError("");
+    if (!editingRoom) return;
+    if (!selectedEquipmentId) return;
+    const selectedIdNum = Number(selectedEquipmentId);
+    const item = inventory.find((i) => Number(i.item_id) === selectedIdNum);
+    if (!item) return;
+    if (addQuantity > getAvailableQuantity(selectedIdNum)) {
+      setEquipmentError(`Not enough stock. Only ${getAvailableQuantity(selectedIdNum)} available.`);
+      return;
+    }
+    // Insert into roomequipment
+    const { error } = await supabase.from("roomequipment").insert({
+      room_id: editingRoom.room_id,
+      item_id: selectedIdNum,
+      quantity: addQuantity,
+    });
+    if (error) {
+      setEquipmentError("Failed to add equipment.");
+      return;
+    }
+    // Update inventoryitem
+    await supabase
+      .from("inventoryitem")
+      .update({ quantity: item.quantity - addQuantity })
+      .eq("item_id", selectedIdNum);
+    setShowAddEquipment(false);
+    setSelectedEquipmentId("");
+    setAddQuantity(1);
+    // No need to manually refresh, useEffect will handle it
+  };
+
+  // Update handleUpdateEquipmentQuantity to refresh both after editing
+  const handleUpdateEquipmentQuantity = async (item_id: number) => {
+    if (!editingRoom) return;
+    const newQty = editQuantities[item_id];
+    const equipment = roomEquipment.find((e) => Number(e.item_id) === Number(item_id));
+    if (!equipment) return;
+    const available = getAvailableQuantity(item_id);
+    const currentQty = equipment.quantity;
+    const diff = newQty - currentQty;
+    if (diff > available - currentQty) {
+      setEditErrors((prev) => ({ ...prev, [item_id]: `Not enough stock. Only ${available} available.` }));
+      return;
+    }
+    setEditErrors((prev) => ({ ...prev, [item_id]: "" }));
+    // Update roomequipment
+    const { error } = await supabase
+      .from("roomequipment")
+      .update({ quantity: newQty })
+      .eq("room_id", editingRoom.room_id)
+      .eq("item_id", item_id);
+    if (error) {
+      setEditErrors((prev) => ({ ...prev, [item_id]: "Failed to update quantity." }));
+      return;
+    }
+    // Update inventoryitem (decrement/increment quantity)
+    if (diff !== 0) {
+      await supabase
+        .from("inventoryitem")
+        .update({ quantity: available - diff })
+        .eq("item_id", item_id);
+    }
+    // No need to manually refresh, useEffect will handle it
+  };
 
   // Dashboard overview with stats
   const DashboardOverview = () => (
@@ -2038,9 +2199,6 @@ export default function AdminDashboard() {
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button size="sm" variant="outline" className="border-gray-300">
-                            Schedule
-                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -2153,58 +2311,159 @@ export default function AdminDashboard() {
 
         {/* Edit Room Dialog */}
         <Dialog open={isEditRoomOpen} onOpenChange={setIsEditRoomOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl w-full h-[600px]">
             <DialogHeader>
               <DialogTitle>Edit Room</DialogTitle>
-              <DialogDescription>Update room information</DialogDescription>
+              <DialogDescription>Update room information and manage assigned equipment</DialogDescription>
             </DialogHeader>
             {editingRoom && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="edit_room_number">Room Number *</Label>
-                  <Input
-                    id="edit_room_number"
-                    value={editingRoom.room_number}
-                    onChange={(e) => setEditingRoom({ ...editingRoom, room_number: e.target.value })}
-                    className="border-gray-300"
-                  />
+              <div className="space-y-6 overflow-y-auto h-[500px] pr-2">
+                {/* Room Info Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit_room_number">Room Number *</Label>
+                    <Input
+                      id="edit_room_number"
+                      value={editingRoom.room_number}
+                      onChange={(e) => setEditingRoom({ ...editingRoom, room_number: e.target.value })}
+                      className="border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_room_capacity">Capacity *</Label>
+                    <Input
+                      id="edit_room_capacity"
+                      type="number"
+                      value={editingRoom.room_capacity}
+                      onChange={(e) => setEditingRoom({ ...editingRoom, room_capacity: Number.parseInt(e.target.value) })}
+                      className="border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_room_status">Status *</Label>
+                    <Select
+                      value={editingRoom.room_status.toString()}
+                      onValueChange={(value) => setEditingRoom({ ...editingRoom, room_status: Number.parseInt(value) })}
+                    >
+                      <SelectTrigger className="border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Available for Booking</SelectItem>
+                        <SelectItem value="2">Under Maintenance</SelectItem>
+                        <SelectItem value="3">Unavailable</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="edit_room_capacity">Capacity *</Label>
-                  <Input
-                    id="edit_room_capacity"
-                    type="number"
-                    value={editingRoom.room_capacity}
-                    onChange={(e) => setEditingRoom({ ...editingRoom, room_capacity: Number.parseInt(e.target.value) })}
-                    className="border-gray-300"
-                  />
+                {/* Equipment Management Section */}
+                <div className="border rounded p-4 bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="font-semibold text-lg">Room Equipment</Label>
+                    <Button size="sm" variant="outline" onClick={() => setShowAddEquipment((v) => !v)}>
+                      Add Equipment
+                    </Button>
+                  </div>
+                  {equipmentLoading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table className="min-w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Assigned</TableHead>
+                            <TableHead>Available</TableHead>
+                            <TableHead>Edit Quantity</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {roomEquipment.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-gray-500">No equipment assigned.</TableCell>
+                            </TableRow>
+                          )}
+                          {roomEquipment.map((eq) => {
+                            // For editing, add back the current room's assigned quantity
+                            const available = getAvailableQuantity(eq.item_id);
+                            return (
+                              <TableRow key={eq.item_id}>
+                                <TableCell className="font-medium">{eq.inventoryitem?.item_name || eq.item_id}</TableCell>
+                                <TableCell>{eq.inventoryitem?.inventorycategory?.category_name || "-"}</TableCell>
+                                <TableCell>{eq.quantity}</TableCell>
+                                <TableCell>{available}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={available}
+                                      value={editQuantities[eq.item_id] ?? eq.quantity}
+                                      onChange={(e) => setEditQuantities((prev) => ({ ...prev, [eq.item_id]: Number(e.target.value) }))}
+                                      className={editErrors[eq.item_id] ? "border-red-500" : ""}
+                                      style={{ width: 80 }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateEquipmentQuantity(eq.item_id)}
+                                      disabled={editQuantities[eq.item_id] === eq.quantity}
+                                    >
+                                      Save
+                                    </Button>
+                                    {editErrors[eq.item_id] && <span className="text-xs text-red-600">{editErrors[eq.item_id]}</span>}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                  {/* Add Equipment Form */}
+                  {showAddEquipment && (
+                    <div className="mt-4 border-t pt-4">
+                      <div className="flex flex-col md:flex-row items-center gap-2">
+                        <Select
+                          value={selectedEquipmentId}
+                          onValueChange={setSelectedEquipmentId}
+                        >
+                          <SelectTrigger className="w-56">
+                            <SelectValue placeholder="Select equipment" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inventory.filter((i) => {
+                              // For adding, do not add back current room's assigned quantity
+                              const availableToAdd = getAvailableQuantity(i.item_id);
+                              return !roomEquipment.some((eq) => eq.item_id === i.item_id) && availableToAdd > 0;
+                            }).map((item) => {
+                              const availableToAdd = getAvailableQuantity(item.item_id);
+                              return (
+                                <SelectItem key={item.item_id} value={item.item_id.toString()}>{item.item_name} (Available: {availableToAdd})</SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={selectedEquipmentId ? getAvailableQuantity(Number(selectedEquipmentId)) : 1}
+                          value={addQuantity}
+                          onChange={(e) => setAddQuantity(Number(e.target.value))}
+                          style={{ width: 80 }}
+                          placeholder="Qty"
+                        />
+                        <Button size="sm" onClick={handleAddEquipmentToRoom}>Add</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setShowAddEquipment(false)}>Cancel</Button>
+                      </div>
+                      {equipmentError && <div className="text-xs text-red-600 mt-1">{equipmentError}</div>}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <Label htmlFor="edit_room_status">Status *</Label>
-                  <Select
-                    value={editingRoom.room_status.toString()}
-                    onValueChange={(value) => setEditingRoom({ ...editingRoom, room_status: Number.parseInt(value) })}
-                  >
-                    <SelectTrigger className="border-gray-300">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Available for Booking</SelectItem>
-                      <SelectItem value="2">Under Maintenance</SelectItem>
-                      <SelectItem value="3">Unavailable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="edit_is_available"
-                    checked={editingRoom.is_available}
-                    onCheckedChange={(checked) => setEditingRoom({ ...editingRoom, is_available: checked })}
-                  />
-                  <Label htmlFor="edit_is_available">Available for booking</Label>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleUpdateRoom} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                {/* Action Buttons */}
+                <div className="flex gap-2 justify-end">
+                  <Button onClick={handleUpdateRoom} className="bg-blue-600 hover:bg-blue-700 text-white">
                     Update Room
                   </Button>
                   <Button variant="outline" onClick={() => setIsEditRoomOpen(false)} className="border-gray-300">
