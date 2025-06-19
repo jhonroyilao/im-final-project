@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Clock, Search } from "lucide-react"
+import { Calendar, Clock, Search, BookOpen } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import RoomCalendar from "@/components/calendar/room-calendar"
 import ReserveRoomModal from "@/components/reservation/reserve-room-modal"
@@ -36,11 +36,30 @@ interface Reservation {
   };
 }
 
+interface ScheduledClass {
+  scheduled_class_id: number;
+  room_id: number;
+  section?: string;
+  instructor_name: number;
+  day_of_week: number;
+  time_start: string;
+  time_end: string;
+  semester: string;
+  academic_year: string;
+  course_code?: string;
+  Room?: {
+    room_number: string;
+  };
+}
+
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export default function FacultyDashboard() {
   const [activeTab, setActiveTab] = useState("calendar")
   const [showReserveModal, setShowReserveModal] = useState(false)
   const [showFindModal, setShowFindModal] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
+  const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
@@ -77,6 +96,40 @@ export default function FacultyDashboard() {
     }
     fetchFacultyReservations()
   }, [isClient])
+
+  // Fetch scheduled classes for this faculty
+  useEffect(() => {
+    if (!isClient) return;
+    const fetchScheduledClasses = async () => {
+      try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) return;
+        // Get faculty_id for this user
+        const { data: faculty, error: facultyError } = await supabase
+          .from('faculty')
+          .select('faculty_id')
+          .eq('user_id', userId)
+          .single();
+        if (facultyError || !faculty) return;
+        const facultyId = faculty.faculty_id;
+        // Now fetch scheduled classes for this faculty_id
+        const { data: classData, error: classError } = await supabase
+          .from('scheduledclass')
+          .select('scheduled_class_id, room_id, section, instructor_name, day_of_week, time_start, time_end, semester, academic_year, course_code, Room:room_id (room_number)')
+          .eq('instructor_name', facultyId);
+        if (classError) return;
+        setScheduledClasses(
+          (classData || []).map((cls: any) => ({
+            ...cls,
+            Room: Array.isArray(cls.Room) ? (cls.Room[0] || undefined) : (cls.Room || undefined)
+          }))
+        );
+      } catch (error) {
+        // ignore
+      }
+    };
+    fetchScheduledClasses();
+  }, [isClient]);
 
   if (!isClient) {
     return null
@@ -148,6 +201,13 @@ export default function FacultyDashboard() {
                   <span className="hidden sm:inline">My Reservations</span>
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="scheduled" 
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline">Scheduled Classes</span>
+                </TabsTrigger>
+                <TabsTrigger 
                   value="find" 
                   className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-white"
                 >
@@ -208,6 +268,47 @@ export default function FacultyDashboard() {
                             <TableCell>{reservation.purpose}</TableCell>
                             <TableCell>{getPriorityLevelText(reservation.priority_level)}</TableCell>
                             <TableCell>{getStatusBadge(reservation.room_status)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="scheduled" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Scheduled Classes</CardTitle>
+                  <CardDescription>View your scheduled classes for the semester</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {scheduledClasses.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled classes</h3>
+                      <p className="text-gray-500 mb-4">You have no scheduled classes for this semester.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Room</TableHead>
+                          <TableHead>Day</TableHead>
+                          <TableHead>Time</TableHead>
+                          <TableHead>Section</TableHead>
+                          <TableHead>Course Code</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {scheduledClasses.map((cls) => (
+                          <TableRow key={cls.scheduled_class_id}>
+                            <TableCell>{cls.Room?.room_number || "N/A"}</TableCell>
+                            <TableCell>{DAY_NAMES[cls.day_of_week]}</TableCell>
+                            <TableCell>{cls.time_start.slice(0, 5)} - {cls.time_end.slice(0, 5)}</TableCell>
+                            <TableCell>{cls.section || "-"}</TableCell>
+                            <TableCell>{cls.course_code || "-"}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
