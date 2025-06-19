@@ -987,6 +987,17 @@ export default function AdminDashboard() {
     // No need to manually refresh, useEffect will handle it
   };
 
+  const getAvailableQuantityForEdit = (item_id: number, currentRoomId: number) => {
+    const total = inventory.find((i) => Number(i.item_id) === Number(item_id))?.quantity ?? 0;
+    const assignedToOtherRooms = allRoomEquipment
+      .filter((eq) => Number(eq.item_id) === Number(item_id) && Number(eq.room_id) !== currentRoomId)
+      .reduce((sum, eq) => sum + (eq.quantity || 0), 0);
+    const currentRoomAssigned = allRoomEquipment
+      .find((eq) => Number(eq.item_id) === Number(item_id) && Number(eq.room_id) === currentRoomId)?.quantity || 0;
+    return total - assignedToOtherRooms;
+    // or: return total - assignedToOtherRooms; // since currentRoomAssigned is not subtracted
+  };
+
   // Dashboard overview with stats
   const DashboardOverview = () => (
     <div className="space-y-6">
