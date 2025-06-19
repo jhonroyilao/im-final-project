@@ -241,6 +241,10 @@ export default function AdminDashboard() {
     user_role: "",
     department: "",
     password: "",
+    student_number: "",
+    faculty_number: "",
+    year_level: "",
+    section: "",
   })
 
   // Add state for room equipment management after editingRoom state
@@ -253,6 +257,7 @@ export default function AdminDashboard() {
   const [editQuantities, setEditQuantities] = useState<{ [key: string]: number }>({});
   const [editErrors, setEditErrors] = useState<{ [key: string]: string }>({});
   const [inventoryFetchError, setInventoryFetchError] = useState("");
+  const [isAddingUser, setIsAddingUser] = useState(false);
 
   // Add state to store all room equipment for all rooms
   const [allRoomEquipment, setAllRoomEquipment] = useState<any[]>([]);
@@ -698,27 +703,116 @@ export default function AdminDashboard() {
 
   // USER CRUD OPERATIONS
   const handleAddUser = async () => {
+    if (isAddingUser) return; // Prevent multiple submissions
+    
     try {
-      if (!newUser.first_name || !newUser.last_name || !newUser.email || !newUser.user_role || !newUser.department) {
+      setIsAddingUser(true);
+      console.log("handleAddUser called with data:", { ...newUser, password: '[REDACTED]' })
+      
+      // Debug validation checks
+      console.log("Validation checks:")
+      console.log("- first_name:", !!newUser.first_name, newUser.first_name)
+      console.log("- last_name:", !!newUser.last_name, newUser.last_name)
+      console.log("- email:", !!newUser.email, newUser.email)
+      console.log("- user_role:", !!newUser.user_role, newUser.user_role)
+      console.log("- department:", !!newUser.department, newUser.department)
+      console.log("- password:", !!newUser.password, newUser.password ? "[REDACTED]" : "")
+      
+      if (!newUser.first_name || !newUser.last_name || !newUser.email || !newUser.user_role || !newUser.department || !newUser.password) {
+        console.log("Validation failed - missing required fields")
         toast.error("Please fill in all required fields")
         return
       }
 
-      const { error } = await supabase.from("users").insert([
-        {
-          first_name: newUser.first_name,
-          middle_name: newUser.middle_name,
-          last_name: newUser.last_name,
-          email: newUser.email,
-          contact_number: newUser.contact_number,
-          user_role: Number.parseInt(newUser.user_role),
-          department: Number.parseInt(newUser.department),
-          is_active: true,
-          last_login: new Date().toISOString(),
-        },
-      ])
+      // Additional validation for role-specific fields
+      if (newUser.user_role === "3" && !newUser.student_number) {
+        console.log("Validation failed - student number required")
+        toast.error("Student number is required for students")
+        return
+      }
 
-      if (error) throw error
+      if (newUser.user_role === "2" && !newUser.faculty_number) {
+        console.log("Validation failed - faculty number required")
+        toast.error("Faculty number is required for faculty members")
+        return
+      }
+
+      console.log("Validation passed, creating user...")
+
+      // Create user record in Users table
+      const userData = {
+        user_role: Number.parseInt(newUser.user_role),
+        first_name: newUser.first_name,
+        middle_name: newUser.middle_name,
+        last_name: newUser.last_name,
+        department: Number.parseInt(newUser.department),
+        email: newUser.email,
+        contact_number: newUser.contact_number,
+        password: newUser.password,
+        is_active: true,
+        last_login: new Date().toISOString(),
+      }
+
+      console.log("Inserting user data:", { ...userData, password: '[REDACTED]' })
+
+      const { data: newUserRecord, error: userError } = await supabase
+        .from("users")
+        .insert([userData])
+        .select()
+        .single()
+
+      if (userError) {
+        console.error("User creation error:", userError)
+        throw userError
+      }
+
+      console.log("User created successfully:", newUserRecord)
+
+      // If user is a student, create student record
+      if (newUser.user_role === "3") {
+        const studentData = {
+          user_id: newUserRecord.user_id,
+          student_number: newUser.student_number,
+          year_level: newUser.year_level || "1st Year",
+          section: newUser.section || "A"
+        }
+
+        console.log("Creating student record:", studentData)
+
+        const { error: studentError } = await supabase
+          .from('student')
+          .insert([studentData])
+
+        if (studentError) {
+          console.error("Student record creation error:", studentError)
+          throw studentError
+        }
+        
+        console.log("Student record created successfully")
+      }
+
+      // If user is faculty, create faculty record
+      if (newUser.user_role === "2") {
+        const facultyData = {
+          user_id: newUserRecord.user_id,
+          faculty_number: newUser.faculty_number
+        }
+
+        console.log("Creating faculty record:", facultyData)
+
+        const { error: facultyError } = await supabase
+          .from('faculty')
+          .insert([facultyData])
+
+        if (facultyError) {
+          console.error("Faculty record creation error:", facultyError)
+          throw facultyError
+        }
+        
+        console.log("Faculty record created successfully")
+      }
+
+      console.log("All records created successfully")
       toast.success("User added successfully")
       setNewUser({
         first_name: "",
@@ -729,12 +823,24 @@ export default function AdminDashboard() {
         user_role: "",
         department: "",
         password: "",
+        student_number: "",
+        faculty_number: "",
+        year_level: "",
+        section: "",
       })
       setIsAddUserOpen(false)
       fetchUsers()
     } catch (error) {
       console.error("Error adding user:", error)
-      toast.error("Failed to add user")
+      let errorMessage = "Failed to add user"
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = JSON.stringify(error)
+      }
+      toast.error(errorMessage)
+    } finally {
+      setIsAddingUser(false);
     }
   }
 
@@ -2883,6 +2989,17 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
+                <Label htmlFor="password">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="Enter password"
+                  className="border-gray-300"
+                />
+              </div>
+              <div>
                 <Label htmlFor="contact_number">Contact Number</Label>
                 <Input
                   id="contact_number"
@@ -2923,11 +3040,81 @@ export default function AdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Student-specific fields */}
+              {newUser.user_role === "3" && (
+                <>
+                  <div>
+                    <Label htmlFor="student_number">Student Number *</Label>
+                    <Input
+                      id="student_number"
+                      value={newUser.student_number}
+                      onChange={(e) => setNewUser({ ...newUser, student_number: e.target.value })}
+                      placeholder="e.g., 2024-12345-MN-0"
+                      className="border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="year_level">Year Level</Label>
+                    <Select
+                      value={newUser.year_level}
+                      onValueChange={(value) => setNewUser({ ...newUser, year_level: value })}
+                    >
+                      <SelectTrigger className="border-gray-300">
+                        <SelectValue placeholder="Select year level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1st Year">1st Year</SelectItem>
+                        <SelectItem value="2nd Year">2nd Year</SelectItem>
+                        <SelectItem value="3rd Year">3rd Year</SelectItem>
+                        <SelectItem value="4th Year">4th Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="section">Section</Label>
+                    <Input
+                      id="section"
+                      value={newUser.section}
+                      onChange={(e) => setNewUser({ ...newUser, section: e.target.value })}
+                      placeholder="e.g., A, B, C"
+                      className="border-gray-300"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Faculty-specific fields */}
+              {newUser.user_role === "2" && (
+                <div>
+                  <Label htmlFor="faculty_number">Faculty Number *</Label>
+                  <Input
+                    id="faculty_number"
+                    value={newUser.faculty_number}
+                    onChange={(e) => setNewUser({ ...newUser, faculty_number: e.target.value })}
+                    placeholder="e.g., 01234"
+                    className="border-gray-300"
+                  />
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <Button onClick={handleAddUser} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                  Add User
+                <Button 
+                  onClick={() => {
+                    console.log("Add User button clicked")
+                    handleAddUser()
+                  }} 
+                  disabled={isAddingUser}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {isAddingUser ? "Adding User..." : "Add User"}
                 </Button>
-                <Button variant="outline" onClick={() => setIsAddUserOpen(false)} className="border-gray-300">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsAddUserOpen(false)} 
+                  disabled={isAddingUser}
+                  className="border-gray-300"
+                >
                   Cancel
                 </Button>
               </div>
