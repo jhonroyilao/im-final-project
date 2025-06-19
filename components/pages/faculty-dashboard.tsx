@@ -13,6 +13,11 @@ import { supabase } from "@/lib/supabase"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { Label } from "@/components/ui/label"
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { X, Filter } from "lucide-react"
 
 interface Reservation {
   reservation_id: number;
@@ -63,6 +68,10 @@ export default function FacultyDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
+  // Filtering states for scheduled classes
+  const [scheduledDay, setScheduledDay] = useState<string>('all')
+  const [scheduledSection, setScheduledSection] = useState<string>('')
+  const [scheduledCourse, setScheduledCourse] = useState<string>('')
 
   useEffect(() => {
     setIsClient(true)
@@ -279,41 +288,118 @@ export default function FacultyDashboard() {
 
             <TabsContent value="scheduled" className="mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Scheduled Classes</CardTitle>
-                  <CardDescription>View your scheduled classes for the semester</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Scheduled Classes</CardTitle>
+                    <CardDescription>View your scheduled classes for the semester</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="border-gray-300">
+                          <Filter className="w-4 h-4 mr-2" />
+                          Filter
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56">
+                        <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <div className="p-2 space-y-2">
+                          <div>
+                            <Label className="text-xs">Day</Label>
+                            <Select
+                              value={scheduledDay}
+                              onValueChange={setScheduledDay}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Days</SelectItem>
+                                {DAY_NAMES.map((day, idx) => (
+                                  <SelectItem key={day} value={String(idx)}>{day}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Section</Label>
+                            <Input
+                              value={scheduledSection}
+                              onChange={e => setScheduledSection(e.target.value)}
+                              placeholder="Section..."
+                              className="h-8"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Course Code</Label>
+                            <Input
+                              value={scheduledCourse}
+                              onChange={e => setScheduledCourse(e.target.value)}
+                              placeholder="Course code..."
+                              className="h-8"
+                            />
+                          </div>
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setScheduledDay('all');
+                            setScheduledSection('');
+                            setScheduledCourse('');
+                          }}
+                          className="text-center justify-center"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Clear Filters
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  {scheduledClasses.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                      <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled classes</h3>
-                      <p className="text-gray-500 mb-4">You have no scheduled classes for this semester.</p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Room</TableHead>
-                          <TableHead>Day</TableHead>
-                          <TableHead>Time</TableHead>
-                          <TableHead>Section</TableHead>
-                          <TableHead>Course Code</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {scheduledClasses.map((cls) => (
-                          <TableRow key={cls.scheduled_class_id}>
-                            <TableCell>{cls.Room?.room_number || "N/A"}</TableCell>
-                            <TableCell>{DAY_NAMES[cls.day_of_week]}</TableCell>
-                            <TableCell>{cls.time_start.slice(0, 5)} - {cls.time_end.slice(0, 5)}</TableCell>
-                            <TableCell>{cls.section || "-"}</TableCell>
-                            <TableCell>{cls.course_code || "-"}</TableCell>
+                  {/* Filtered Table */}
+                  {(() => {
+                    const filtered = scheduledClasses.filter(cls => {
+                      const matchDay = scheduledDay === 'all' || String(cls.day_of_week) === scheduledDay;
+                      const matchSection = !scheduledSection || (cls.section || '').toLowerCase().includes(scheduledSection.toLowerCase());
+                      const matchCourse = !scheduledCourse || (cls.course_code || '').toLowerCase().includes(scheduledCourse.toLowerCase());
+                      return matchDay && matchSection && matchCourse;
+                    });
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="text-center py-12 text-gray-500">
+                          <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled classes</h3>
+                          <p className="text-gray-500 mb-4">You have no scheduled classes for this semester.</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Room</TableHead>
+                            <TableHead>Day</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Section</TableHead>
+                            <TableHead>Course Code</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
+                        </TableHeader>
+                        <TableBody>
+                          {filtered.map((cls) => (
+                            <TableRow key={cls.scheduled_class_id}>
+                              <TableCell>{cls.Room?.room_number || "N/A"}</TableCell>
+                              <TableCell>{DAY_NAMES[cls.day_of_week]}</TableCell>
+                              <TableCell>{cls.time_start.slice(0, 5)} - {cls.time_end.slice(0, 5)}</TableCell>
+                              <TableCell>{cls.section || "-"}</TableCell>
+                              <TableCell>{cls.course_code || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
