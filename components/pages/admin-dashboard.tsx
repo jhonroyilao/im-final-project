@@ -1134,6 +1134,13 @@ export default function AdminDashboard() {
                     </SortableTableHead>
                     <TableHead>Time</TableHead>
                     <SortableTableHead
+                      field="priority_level"
+                      currentSort={reservationSort}
+                      onSort={(field) => handleSort(field, reservationSort, setReservationSort)}
+                    >
+                      Priority
+                    </SortableTableHead>
+                    <SortableTableHead
                       field="room_status"
                       currentSort={reservationSort}
                       onSort={(field) => handleSort(field, reservationSort, setReservationSort)}
@@ -1155,6 +1162,11 @@ export default function AdminDashboard() {
                       </TableCell>
                       <TableCell>{new Date(reservation.reservation_date).toLocaleDateString()}</TableCell>
                       <TableCell className="text-sm text-gray-600">{`${reservation.start_time} - ${reservation.end_time}`}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {getPriorityLevelText(reservation.priority_level)}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -1281,7 +1293,9 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <Label className="text-xs text-gray-500">Priority Level</Label>
-                    <p className="text-sm">{viewingReservation.priority_level || 'Not specified'}</p>
+                    <div className="mt-1">
+                      {getPriorityLevelBadge(viewingReservation.priority_level)}
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs text-gray-500">Equipment Needed</Label>
@@ -2849,6 +2863,32 @@ export default function AdminDashboard() {
           </DialogContent>
         </Dialog>
       </Card>
+    )
+  }
+
+  const getPriorityLevelText = (priorityLevel: number): string => {
+    switch (priorityLevel) {
+      case 1:
+        return "1st Priority: University and/or College Functions"
+      case 2:
+        return "2nd Priority: Scheduled Regular Classes"
+      case 3:
+        return "3rd Priority: Make-up and Tutorial Classes initiated by Faculty"
+      case 4:
+        return "4th Priority: Co-curricular Activities"
+      default:
+        return "Not specified"
+    }
+  }
+
+  const getPriorityLevelBadge = (priorityLevel: number) => {
+    const text = getPriorityLevelText(priorityLevel)
+    const variant = priorityLevel === 1 ? "default" : priorityLevel === 2 ? "secondary" : priorityLevel === 3 ? "outline" : "destructive"
+    
+    return (
+      <Badge variant={variant} className="text-xs">
+        {text}
+      </Badge>
     )
   }
 

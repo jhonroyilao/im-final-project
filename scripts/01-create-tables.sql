@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   time_end TIME NOT NULL,
   number_of_students INTEGER NOT NULL,
   reason TEXT NOT NULL,
+  priority_level INTEGER NOT NULL DEFAULT 4 CHECK (priority_level BETWEEN 1 AND 4),
   status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
   file_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
